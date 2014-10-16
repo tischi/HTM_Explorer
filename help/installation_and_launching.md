@@ -1,4 +1,4 @@
-## HTM tool: installation and starting ##
+## HTM Explorer: installation and starting ##
 
 
 ### Installation of R ###
@@ -14,8 +14,7 @@ make sure the Tcl/Tk libraries are part of the installation package; normally th
 
 ### Installation of R packages ###
 
-start R
-within the R terminal window type:
+Start R; within the R console window type:
 
 `install.packages("gWidgets")`
 
@@ -23,24 +22,29 @@ within the R terminal window type:
 
 `install.packages("markdown")`
 
-
-note: if you are using Windows 7 it may ask you whether it should install it as "personal libraries"...just say "yes"
+Note: if you are using Windows 7 it may ask you whether it should install it as "personal libraries"...just say "yes"
 
 
 ### Installation of the HTM tool ###
 
-the HTM Tool itself needs no installation, you just need the HTM folder and its contents somewhere on your computer; these files you get from Tischi (tischer@embl.de)
+The HTM Explorer itself needs no installation; you just need to put the HTM Explorer folder and all its contents somewhere onto your computer; you can download these files from [github](
+https://github.com/tischi/HTM_Explorer/archive/master.zip).
 
 
-### Starting the HTM tool ###
+### Starting the HTM Explorer ###
 
 Start R and type below commands replacing `/path/to/` by the location of the HTM folder:
 
 `setwd("/path/to/HTM"); source("install.R");`
 
-Now you see the graphical user interface popping up and yo are ready to go. 
+Now you see the graphical user interface popping up and you are ready to go. 
 
-#### Special procedure when using Mac OS > 10.9 ####
+### More help on usage ###
+
+For more help on the usage of HTM Explorer please check all the "Help" buttons and "Help" menu items within the GUI.
+
+
+### Special procedure when using Mac OS > 10.9 ###
 
 - start XQuartz (you may need to install [XQuartz](https://xquartz.macosforge.org/landing/) first).
 
