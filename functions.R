@@ -1,0 +1,1454 @@
+# todo:
+
+# - Plate Layout: replace gedit by dropdownlists to avoid pressing enter
+# - Heatmaps: compute image positions on the fly (don't add as column)
+#     - do this in a clean way
+# - Plate Plot: 
+#    -- LUT min max selection: think about avoiding pressing enter
+#    -- add some GUI elements for initialising the LUTminmax by min max of all plates or percen
+#    -- aspect ratio compute from nWellsX and nWellsY
+# - JOHN: allow one only window open at the time
+# - visualisation options: prefill and replace by sliders
+# - Plate Plot: have three different Highlight Treatment drop downs (black, dark-green, yellow)
+# - Save all plates: add treatment highlight somehow
+# - Highlight treatment: remove button, but add a NONE
+# - INteractive plate plot: button: click and show treatment
+
+# - add measurements gui: Method in label is wroing
+
+# gui_AddRemoveVectorSetting: frames: Add and Remove, specific instructions in title
+# remove frames: put buttons to the left
+# add: text window: currently selected
+
+# add more columns (division?)  how to?
+# - text field for code that is saved in the settings, e.g.
+# htm@data[["newcolumn"]] = htm@data$PathName_TOTAL / htm@data$PathName_All
+
+# run extra code if:
+# - new image table is loaded
+# - if the extra code changes (either manually or when loading new settings)
+
+# button for "run extra code"
+
+# image normalisation: add "without_normalisation"
+
+# have for each negative control an own plateQC evaluation and column
+
+# ALLOW ONLY ONE NEGATIVE CONTROL
+
+# plate QC: make negative Control to percentage
+
+# "Select Treatment Summary Methods: Within Plate 
+# "Select Treatment Summary Methods: Across Plates 
+
+
+sem <- function(values) {
+  return (sd(values,na.rm=T)/sqrt(sum(!is.na(values))))
+}
+
+sem_above <- function(values) {
+  m = mean(values,na.rm=T)
+  a = which(values > m) # ignores NA
+  s = sqrt(sum((values[a]-m)^2)/length(a))
+  sem = s/sqrt(length(a))
+  return(sem)
+}
+
+sem_below <- function(values) {
+  m = mean(values,na.rm=T)
+  a = which(values < m) # ignores NA
+  s = sqrt(sum((values[a]-m)^2)/length(a))
+  sem = s/sqrt(length(a))
+  return(sem)
+}
+
+
+htmOverview <- function(htm) {
+  cExp = htm@settings@columns$experiment
+  cWell = htm@settings@columns$wellnum
+  cPos = htm@settings@columns$posnum
+  
+  nExp = length(unique(paste(htm@data[[cExp]])))
+  nWell = length(unique(paste(htm@data[[cExp]],htm@data[[cWell]],sep="_")))
+  nPos =  length(unique(paste(htm@data[[cExp]],htm@data[[cWell]],htm@data[[cPos]],sep="_")))
+  
+  print("")
+  print("Overiew of the contents of the image table:")
+  print(paste("experiments =",nExp))
+  print(paste("wells =",nWell))
+  print(paste("wells/experiment =",nWell/nExp))
+  print(paste("positions =",nPos))
+  print(paste("positions/well =",nPos/nWell))
+                 
+  
+  
+}
+
+htm_convert_wellNum_posNum_to_xy <- function(wellNum, posNum) {
+  
+  ### GET INFO FROM HTM
+  plate.nrow = htm@settings@visualisation$number_positions_y
+  plate.ncol = htm@settings@visualisation$number_positions_x
+  plate.nwells = plate.nrow * plate.ncol
+  plate.nposrow = htm@settings@visualisation$number_subpositions_y
+  plate.nposcol = htm@settings@visualisation$number_subpositions_x
+  plate.npos = plate.nposrow * plate.nposcol
+  
+  ### WELLS  
+  plate.wellNumToRow = vector(length=plate.nwells);
+  plate.wellNumToCol = vector(length=plate.nwells); 
+  iw = 1;
+  for(ir in 1:plate.nrow) {
+    for(ic in 1:plate.ncol) {
+      plate.wellNumToRow[iw] = ir;
+      plate.wellNumToCol[iw] = ic;
+      iw=iw+1;
+    }  
+  }
+  
+  ### SUBPOSITIONS
+  
+  plate.image.distance = 0.6/max(plate.nposcol,plate.nposrow);
+  #plate.image.size.cex <<- 2.5/plate.nposcol
+  plate.posNumToRow = vector(length=plate.npos);
+  plate.posNumToCol = vector(length=plate.npos);
+  
+  ip = 1;
+  dd = plate.image.distance ;
+  
+  dc = -(plate.nposcol-1)*dd/2;
+  for(ic in 1:plate.nposcol) {
+    dr = -(plate.nposrow-1)*dd/2; 
+    for(ir in 1:plate.nposrow) {
+      plate.posNumToCol[ip] = dc;
+      plate.posNumToRow[ip] = dr;
+      ip = ip + 1;
+      dr = dr + dd;
+    }
+    dc = dc + dd; 
+  }
+  
+  
+  ## return
+  
+  list(y = plate.wellNumToRow[wellNum]+plate.posNumToRow[posNum],
+       x = plate.wellNumToCol[wellNum]+plate.posNumToCol[posNum])
+
+
+}
+
+
+htm_convert_wellNum_to_xy <- function(wellNum) {
+  
+  ### GET INFO FROM HTM
+  plate.nrow = htm@settings@visualisation$number_positions_y
+  plate.ncol = htm@settings@visualisation$number_positions_x
+  plate.nwells = plate.nrow * plate.ncol
+
+  ### intialise
+  xx = vector(length=length(wellNum))
+  yy = xx
+    
+  ### WELLS  
+  plate.wellNumToRow = vector(length=plate.nwells);
+  plate.wellNumToCol = vector(length=plate.nwells);
+  iw = 1;
+  for(ir in 1:plate.nrow) {
+    for(ic in 1:plate.ncol) {
+      plate.wellNumToRow[iw] = ir;
+      plate.wellNumToCol[iw] = ic;
+      iw=iw+1;
+    }  
+  }
+ 
+  
+  ## return
+  
+  list(y = plate.wellNumToRow[wellNum],
+       x = plate.wellNumToCol[wellNum])
+  
+  
+}
+
+
+
+convert_wellA01_to_wellNum <- function(wellA01, nc=12) {
+  
+  ## Example:
+  # convert_wellA01_to_wellNum(c("A01","B02","C02"), nc=12)
+  
+  
+  ### GET INFO FROM HTM
+  #plate.nrow = htm@settings@visualisation$number_positions_y
+  #plate.ncol = htm@settings@visualisation$number_positions_x
+  
+  n = length(wellA01)
+  
+  ### intialise
+  wellNum = vector(length=n)
+  
+  ### 
+  for(i in 1:n) {  
+    ir <- which(LETTERS == substr(wellA01[i],1,1))
+    ic <- as.numeric(substr(wellA01[i],2,1000000000))
+    wellNum[i] = (ir - 1) * nc + ic
+    print(paste(wellA01[i],wellNum[i]))
+  }
+  
+  
+  ## return
+  return(wellNum)  
+#  list(y = plate.wellNumToRow[wellNum],
+#       x = plate.wellNumToCol[wellNum])
+  
+  
+}
+
+
+
+
+htmLoadDataFromFile <- function(htm, tablename, path) {
+  
+  print(paste("reading",path,"..."))
+  .table = read.table(file=path, header=T, sep=",", stringsAsFactors=F, check.names=T)
+  
+  if(is.null(htm)) {
+    print("ERROR: no htm object found. please 'Reinitialise Everything'")
+    return(NULL)
+  } else {
+    cmd <- paste("htm@",tablename," <- .table",sep="")
+    print(cmd)
+    eval(parse(text=cmd))
+  } 
+  
+  return(htm) 
+  }
+
+htmSaveDataTable <- function(htm, tablename, path) {
+  
+  print(paste("writing",path,"..."))
+  .table = eval(parse(text=paste("htm@",tablename,sep="")))
+  write.csv(.table, file=path)
+
+  }
+
+htmLoadSetttings <- function(htm, path) {
+  
+  print(paste("loading",path))
+  load(path)
+  
+  if(is.null(htm)) {
+    print("constructed new htm object with loaded settings")
+    htm <- htmMake()
+    htm@settings <- .settings
+  } else {
+    print("replacing settings in existing htm object.")
+    htm@settings <- .settings 
+  } 
+  
+  print(.settings)
+  return(htm) 
+}
+
+htmSaveSetttings <- function(htm, path) {
+  
+  print(paste("saving",path))
+  .settings = htm@settings
+  save(.settings,file=path)
+  
+}
+
+htmGetColumnNumber <- function(htm,colname) {
+  icol = which(colnames(htm@data)==colname)
+  if(length(icol)) {
+    return(icol)    
+  } else {
+    return(0)
+  }
+}
+
+htmAddImageQC <- function(htm,.colname,.min,.max) {
+  
+  qc = htm@settings@qcImages
+  
+  if(qc[1,1]=="None selected") {
+    htm@settings@qcImages <- data.frame(colname=.colname, min=.min, max=.max)
+  } else {
+    htm@settings@qcImages <- rbind(htm@settings@qcImages,data.frame(colname=.colname, min=.min, max=.max))
+  }
+
+  #print(paste("added image QC: colname =",.colname,"; min =",.min,"; max =",.max))
+  return(htm)
+  
+}
+
+htmGetImageQCs <- function(htm) {
+  
+  nImageQCs = nrow(htm@settings@qcImages)
+  QCs = vector()
+  for(i in 1:nImageQCs) {
+    .colname = htm@settings@qcImages[i,1]
+    .min =     htm@settings@qcImages[i,2]
+    .max =     htm@settings@qcImages[i,3]
+    QCs[length(QCs)+1]=paste(.colname,"  min=",.min,"  max=",.max,sep="")
+  }
+  return(QCs)
+  
+}
+
+htmRemoveImageQCs <- function(htm, indices) { 
+  
+  htm@settings@qcImages <- htm@settings@qcImages[-indices,]
+  if(nrow(htm@settings@qcImages)==0) {
+    htm@settings@qcImages <- data.frame(colname="None selected", min=NA, max=NA)
+  }
+
+  #print(htm@settings@qcImages)
+  return(htm)
+  
+}
+
+
+htmPrintLog <- function(){
+  htm <- get("htm", envir = globalenv()) 
+  cat(htm@log)
+}
+
+htmAddLog <- function(text){
+  htm <- get("htm", envir = globalenv()) 
+  htm@log = paste(htm@log,text,sep="\n")
+  assign("htm", htm, envir = globalenv())            
+}
+
+htmClearLog <- function(text){
+  htm <- get("htm", envir = globalenv()) 
+  htm@log = ""
+  assign("htm", htm, envir = globalenv())            
+}
+
+
+htmSetListSetting <- function(htm, setting, key, value, gui = F) {
+  if(gui==T) {
+    htm <- get("htm", envir = globalenv()) 
+  }
+  print(setting)
+  print(key)
+  print(value)
+  
+  print(paste0("htmSetListSetting(htm" , ",'" , setting, "','" , key , "','" , value , "',gui=T)"))
+  .list = eval(parse(text=paste("htm@settings@",setting,sep="")))
+  .list[[key]]=value
+  eval(parse(text=paste("htm@settings@",setting," <- .list",sep=""))) 
+  if(gui==T) {
+    assign("htm", htm, envir = globalenv())   
+  }
+  return(htm)
+}
+ 
+
+        
+htmGetListSetting <- function(htm, .setting, .key, gui = F) {  
+  if(gui==T) {
+    htm <- get("htm", envir = globalenv()) 
+  }
+  .list = eval(parse(text=paste("htm@settings@",.setting,sep="")))
+ 
+  if(is.null(.list[[.key]]) || is.na(.list[[.key]])) {
+    return("None selected")
+  } else {
+    return(.list[[.key]])
+  }
+  
+}
+
+htmGetVectorSettings <- function(.setting) {
+  htm <- get("htm", envir = globalenv()) 
+  .out = eval(parse(text=paste("htm@settings@",.setting,sep="")))
+  if( is.null(eval(parse(text=paste("htm@settings@",.setting,sep="")))) ) {
+    .out = c("None selected")
+  }  
+  return(.out)
+}
+
+htmAddVectorSetting <- function(.setting, .entry) { 
+  htm <- get("htm", envir = globalenv())
+  
+  if( is.null(eval(parse(text=paste("htm@settings@",.setting,sep="")))) ) {
+    .vector = c("None selected")
+    eval(parse(text=paste("htm@settings@",.setting,"<- .vector",sep="")))  
+  }
+  
+  
+  .vector = eval(parse(text=paste("htm@settings@",.setting,sep="")))
+  if(.vector[1]=="None selected") {
+    .vector <- c(.entry)
+  } else if (.entry %in% .vector) {
+    print("This was already selected.")
+    .vector <- .vector
+  } else {
+    .vector <- c(.vector,.entry)
+  }
+  eval(parse(text=paste("htm@settings@",.setting,"<- .vector",sep=""))) 
+  print(paste("New setting of",.setting))
+  print(.vector)
+  
+  assign("htm", htm, envir = globalenv())          
+
+}
+
+htmRemoveVectorSetting <- function(.setting, .index) {
+  htm <- get("htm", envir = globalenv()) 
+  .vector = eval(parse(text=paste("htm@settings@",.setting,sep="")))
+  .vector <- .vector[-.index]
+  if(length(.vector)==0) {
+    .vector=c("None selected")
+  }
+
+  eval(parse(text=paste("htm@settings@",.setting,"<- .vector",sep=""))) 
+  print("New settings:")
+  print(.vector)
+  assign("htm", htm, envir = globalenv())          
+}
+
+htmApplyImageQCs <- function(htm) {
+    
+  print("Performing Image QC:")
+  
+  # get image QC dataframe from htm object
+  data = htm@data
+  qc = htm@settings@qcImages
+  
+  if(qc[1,1]=="None selected") {
+    print("  No image QCs selected. Setting all images to valid.")
+    htm@data$HTM_qcImages <- rep(1,nrow(htm@data)) # at this point something happens to the memory of htm... 
+  } else {
+    # compute QC and put results into htm
+    passedQC = dataframeQC(data,qc)  
+    # return the modified htm
+    htm@data$HTM_qcImages <- passedQC # at this point something happens to the memory of htm...
+  }  
+  
+  print("  (The column HTM_qcImages has been updated or generated.)")
+  print("")
+  return(htm)
+  
+}
+
+dataframeQC <- function(data=data.frame(),qc=data.frame()) {
+  
+  passedallqc = rep(TRUE, nrow(data) )
+  
+  print(paste("QC:"))
+  
+  for(i in 1:nrow(qc)) {
+    
+    values = data[[as.character(qc$colname[i])]]
+    
+    #passedthisqc = rep(NA, nrow(htm@data) )
+    passedthisqc <- ( (values >= qc$min[i]) & (values <= qc$max[i]) & !(is.na(values)))
+    passedallqc[ !passedthisqc ] <- FALSE
+    
+    print(paste("Measurement:", qc$colname[i]))
+    print(paste("  Allowed range:", qc$min[i], "..",qc$max[i], "and not NA."))
+    print(paste("  Images total:", length(passedthisqc)))
+    print(paste("  Images failed:", sum(!passedthisqc)))        
+    
+  }
+  
+  print(paste(" "))
+  print(paste("Summary of all QCs:"))
+  print(paste("  Images total (all QCs):", length(passedallqc)))
+  print(paste("  Images failed (all Qcs):", sum(!passedallqc)))        
+  
+  return(passedallqc)    
+  
+}
+
+htmImageNormalization <- function(htm) {
+    
+  print("")
+  print("Image normalization")
+  print("*******************")
+  print("")
+  
+  # get all necessary information
+  measurement <- htmGetListSetting(htm,"statistics","measurement")
+  experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
+  experiments_to_exclude <- htmGetVectorSettings("statistics$experiments_to_exclude")
+  negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  transformation <- htmGetListSetting(htm,"statistics","transformation")
+  
+  print("");print("Measurement:")
+  print(measurement)
+  
+  # check whether we know everything            
+  if( is.null(experiments) || measurement=="None selected") {
+    print("")
+    print("  ERROR: cannot perform analysis due to lacking information (see above).")
+    gmessage("Error: see R console output.")
+    return(htm)
+  }
+  
+  if( is.null(htm@data$HTM_qcImages) ) {
+    print(" WARNING: there was no Image QC column; all images with non NA values will be set tovalid!")
+    htm@data$HTM_qcImages = !is.na(htm@data[[measurement]])
+  } 
+      
+  
+  if(transformation == "log2") {
+    # compute log transformation
+    # create new column name
+    logScoreName = paste(measurement,"log2",sep="__")
+    htm@data[[logScoreName]] <- log2(htm@data[[measurement]]) 
+    
+    # todo: this should be at a more prominent position
+    print("Replacing -Inf in log scores ******************************")
+    logScores = htm@data[[logScoreName]]
+    finiteLogScores = subset(logScores,is.finite(logScores))
+    minimum = min(finiteLogScores)
+    idsInf = which(is.infinite(logScores))
+    logScores[idsInf] <- minimum
+    htm@data[[logScoreName]] <- logScores
+    
+    #htmAddLog("Replacing Infinities in Log2 Score by")
+    #htmAddLog(minimum)
+    #htmAddLog("Affected Wells:")
+    #for(id in idsInf) {
+    #  htmAddLog(htm@wellSummary$treatment[id])
+    #  htmAddLog(htm@wellSummary$wellQC[id])
+    #  htmAddLog(htm@wellSummary[id,logScoreName])
+    #  htmAddLog("")
+    #}
+  } # if log transformation
+  
+  
+  # select log2 data in case data transformation is selected
+  if(transformation == "log2") {
+    measurement = logScoreName
+  } else {
+    measurement = measurement
+  }
+    
+  measurement_minusMeanCtrl = paste(measurement,"minusMeanCtrl",sep="__")    
+  htm@data[[measurement_minusMeanCtrl]] = NA
+
+
+  print("Computing Image Normalisations...")
+  
+  for(experiment in experiments) {
+   
+    if(experiment %in% experiments_to_exclude) next
+    
+    print("")
+    print(paste("  Experiment:",experiment))
+    
+    indices_all <- which((htm@data[[htm@settings@columns$experiment]] == experiment))
+    indices_ok <- which((htm@data[[htm@settings@columns$experiment]] == experiment) & (htm@data$HTM_qcImages))
+    
+    if("all treatments" %in% negcontrols) {
+      indices_controls_ok <- indices_ok
+    } else {
+      indices_controls_ok <- which((htm@data[[htm@settings@columns$experiment]] == experiment) & (htm@data$HTM_qcImages) & (htm@data[[htm@settings@columns$treatment]] %in% negcontrols))
+    }
+    
+    print(paste("    Images Total", length(indices_all)))
+    print(paste("    Images Valid", length(indices_ok)))      
+    print(paste("    Images Valid Control", length(indices_controls_ok)))
+    
+    # here values are extracted 
+    valuescontrol <- htm@data[indices_controls_ok, measurement]
+       
+    nr_of_controls <-  length(valuescontrol)
+    meancontrol <- mean(valuescontrol)    
+    sigmacontrol <- sd(valuescontrol) 
+    mediancontrol <- median(valuescontrol)
+    madcontrol <- mad(valuescontrol)  
+    semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
+    print(paste("    Control Mean:", meancontrol))
+    print(paste("    Control SD:", sigmacontrol))
+    print(paste("    Control Median:", mediancontrol))
+    print(paste("    Control MAD:", madcontrol))
+    
+    htm@data[indices_all, measurement_minusMeanCtrl] <- ( htm@data[indices_all, measurement] - meancontrol )
+    
+    
+    # t_test, image based
+    
+    
+  } # experiment loop
+  
+   
+  return(htm@data)
+   
+ }
+
+htmWellSummary <- function(htm) {
+      
+    print("")
+    print("Image score -> Well score:")
+    print("**************************")
+    print("")
+    
+    # get all necessary information
+    measurement <- htmGetListSetting(htm,"statistics","measurement")
+    method <- htmGetListSetting(htm,"statistics","wellSummaryMethod")
+    minNumValidImages <- 1 #htmGetListSetting(htm,"statistics","WellQC_Minimum_Number_Valid_Images")
+    minNumObjects <- htmGetListSetting(htm,"statistics","WellQC_Minimum_Number_Objects")
+    weighting <- htmGetListSetting(htm,"statistics","objectCount")
+    colObjectCount <- htmGetListSetting(htm,"statistics","objectCount")
+    experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
+    experiments_to_exculde <- htmGetVectorSettings("statistics$experiments_to_exclude")
+    
+    # output
+    #print("");print("Experiments:")
+    #print(experiments)
+    print("");print("Well Summary Method:")
+    print(method)
+    print("");print("Measurement:")
+    print(measurement)
+    print("");print("Weighting with:")
+    print(weighting)
+    print("");print("Column containing the object count:")
+    print(colObjectCount)
+    
+    
+    print("");
+    print(paste("Well QC: minimum number of valid images:",minNumValidImages))
+    print(paste("Well QC: minimum number of objects",minNumObjects))
+    
+    
+    if(htm@settings@columns$wellnum=="") {
+      gmessage("Cannot proceed: you need to specify a Well Column!")
+      return(htm)
+    }
+    
+    # check whether we know everything            
+    if( is.null(experiments) ||
+          (measurement=="None selected") ||
+          (method=="None selected") 
+    ) {
+      print("")
+      print("  ERROR: cannot perform analysis due to lacking information (see above).")
+      gmessage("Error: see R console output.")
+      return(htm)
+    }
+    
+    if( is.null(htm@data$HTM_qcImages) ) {
+      print(" WARNING: there is no Image QC column; all images with non NA values will be considered valid!")
+    } 
+    
+    ids_wells = split(1:nrow(htm@data), paste(htm@data[[htm@settings@columns$experiment]], htm@data[[htm@settings@columns$wellnum]]) )
+    
+    # removing "bad experiments" => why should this be here?
+    
+    #print(""); print("removing bad wells")
+    #ids_to_exclude = vector()
+    #for(i in 1:length(ids_wells)) {
+    #  
+    #  experiment = htm@data[ids_wells[[i]][1],htm@settings@columns$experiment]
+    #  
+    #  if( experiment %in% experiments_to_exculde ) {
+    #    ids_to_exclude = append(ids_to_exclude,i)
+    #  }
+    #  
+    #}
+    #print(ids_to_exclude)
+    #print(length(ids_wells))
+    #if(length(ids_to_exclude)) {
+    #  ids_wells = ids_wells[-ids_to_exclude]
+    #}
+    #print(length(ids_wells))
+    
+    
+    numEntries = length(ids_wells) 
+    
+    results <- data.frame(wellNum=rep(NA,numEntries),
+                          numObjectsOK=rep(NA,numEntries),
+                          wellQC=rep(NA,numEntries),
+                          numImages=rep(NA,numEntries),
+                          numImagesOK=rep(NA,numEntries),
+                          objectsPerImage=rep(NA,numEntries),
+                          experiment=rep(NA,numEntries),
+                          treatment=rep(NA,numEntries),
+                          stringsAsFactors = FALSE)
+    
+    
+    # init columns for the scores that are obtained by averaging the images in the well  
+    
+    # average
+    scorename <- paste("wellscore",measurement,method,sep="__")
+    results[[scorename]] <- rep(NA,numEntries)
+    
+    # average deviation
+    if( method == "mean_of_images" ) {
+      wellscoredevmethod <- "sd"
+    } else if (method == "median_of_images") {              
+      wellscoredevmethod <- "MAD"
+    } else if (method== "weighted_mean_of_images") {
+      wellscoredevmethod <- "NotSureYet"
+    }
+    print(method)
+    print(wellscoredevmethod)
+    scoredevname <- paste("wellscore_deviation",measurement,method,wellscoredevmethod,sep="__")
+    print(scoredevname)
+    results[[scoredevname]] <- rep(NA,numEntries)
+    print(colnames(results))
+    
+    # start computing the well average from the images 
+    i = 0
+    print("Analyzing.....")
+    
+    for(ids in ids_wells) {
+      
+      if( is.null(htm@data$HTM_qcImages) ) {
+        idsOK = ids[which(!is.na(htm@data[ids,measurement]))]
+      } else {
+        idsOK = ids[ which( (htm@data$HTM_qcImages[ids]==1) & (!is.na(htm@data[ids,measurement])) ) ]
+      }
+      
+      ## QC
+      
+      wellQC <- 1
+      
+      if( length(idsOK) < minNumValidImages ) wellQC <- 0
+      
+      if(colObjectCount != "None selected") {
+        numObjectsOK <- sum(htm@data[idsOK,colObjectCount])
+        if( numObjectsOK < minNumObjects ) wellQC <- 0
+      } else {
+        numObjectsOK <- NA
+      }
+      
+      
+      i=i+1
+      results$experiment[i] <- htm@data[ids[1],htm@settings@columns$experiment]
+      results$treatment[i] <- htm@data[ids[1],htm@settings@columns$treatment]
+      results$wellNum[i] <- htm@data[ids[1],htm@settings@columns$wellnum]
+      results$numImagesOK[i] <- length(idsOK)
+      results$numImages[i] <- length(ids)
+      results$numObjectsOK[i] <- numObjectsOK
+      results$objectsPerImage[i] <- numObjectsOK/length(idsOK)
+      # print(scorename)
+      # print(wellscore)
+      
+          
+    if( method == "mean_of_images" ) {
+      wellscore <- mean(htm@data[idsOK,measurement])
+      wellscoredeviation <- sd(htm@data[idsOK,measurement])
+    } else if (method == "median_of_images") {              
+      wellscore <- median(htm@data[idsOK,measurement])
+      wellscoredeviation <- mad(htm@data[idsOK,measurement])
+    } else if (method== "weighted_mean_of_images") {
+      wellscore <- sum( htm@data[idsOK,measurement]*htm@data[idsOK,weighting] ) / sum(htm@data[idsOK,weighting])
+      wellscoredeviation <- NA
+    } 
+    
+    results[i,scorename] <- wellscore
+    results[i,scoredevname] <- wellscoredeviation
+    
+      
+    if( is.na(wellscore)) wellQC <- 0
+    results$wellQC[i] <- wellQC
+                
+    } # well loop
+    
+    measurement <- scorename
+    
+    
+    
+    # put wellscores into HTM object
+    htm@wellSummary <- results
+      
+    print(paste("  Wells Total:",length(results$wellQC)))
+    print(paste("  Wells OK:",sum(results$wellQC)))
+    print(paste("  Images Total:",sum(results$numImages)))
+    print(paste("  Images OK:",sum(results$numImagesOK)))
+    
+  
+    htmAddLog("Well Normalisation:")
+    htmAddLog("*******************")
+    
+    experiments <- unique(htm@data[[htm@settings@columns$experiment]])   
+    #negcontrols <- htm@settings@ctrlsNeg
+    negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+    #normmethod <- htmGetListSetting(htm,"statistics","normalisationMethod")
+    transformation <- htmGetListSetting(htm,"statistics","transformation")
+     
+    # output
+    htmClearLog()
+    htmAddLog("");htmAddLog("Experiments:")
+    htmAddLog(experiments)
+    htmAddLog("");htmAddLog("Negative controls:")
+    htmAddLog(negcontrols)
+    #htmAddLog("");htmAddLog("Well normalisation method:")
+    #htmAddLog(normmethod)
+    htmAddLog("");htmAddLog("Measurement:")
+    htmAddLog(measurement);
+    htmAddLog("");
+    
+
+    # check whether we know everything            
+    if( is.null(experiments) ||
+          (negcontrols=="None selected") ||
+          #(normmethod=="None selected") || 
+          (measurement=="None selected")
+    ) 
+    {
+      print("")
+      print("  ERROR: cannot perform analysis due to lacking information (see above).")
+      gmessage("Error: see R console output.")
+      
+      print("")
+      return(htm)
+    }
+    
+    # todo:
+    # replace below print functions with showinfo, which could be turned off
+     
+     
+    # indicate the negative controls
+    #htm@wellSummary$negCtrl <- rep(control,nrow(htm@wellSummary))
+    htm@wellSummary$negCtrl <- rep(paste(negcontrols,collapse="--"),nrow(htm@wellSummary))
+     
+    if(transformation == "log2") {
+      
+      print("Computing log2 transformation")
+      # compute log transformation
+      logScoreName = paste("log2",measurement,sep="__")
+      htm@wellSummary[[logScoreName]] <- log2(htm@wellSummary[[measurement]]) 
+      
+      # todo: this should be at a more prominent position
+      logScores = htm@wellSummary[[logScoreName]]
+      finiteLogScores = subset(logScores,is.finite(logScores))
+      minimum = min(finiteLogScores)
+      print(paste("  Replacing -Inf in log scores by ",minimum))
+      
+      idsInf = which(is.infinite(logScores))
+      logScores[idsInf] <- minimum
+      htm@wellSummary[[logScoreName]] <- logScores
+      
+      #htmAddLog("Replacing Infinities in Log2 Score by")
+      #htmAddLog(minimum)
+      #htmAddLog("Affected Wells:")
+      #for(id in idsInf) {
+      #  htmAddLog(htm@wellSummary$treatment[id])
+      #  htmAddLog(htm@wellSummary$wellQC[id])
+      #  htmAddLog(htm@wellSummary[id,logScoreName])
+      #  htmAddLog("")
+      #}
+      
+      measurement = logScoreName
+      
+    } # if log transformation
+    
+
+    if(htmGetListSetting(htm,"statistics","gradientCorrection") == "medpolish") {
+      
+      print("Apply medpolish")
+     
+      medpolish_name =  paste("medpolish",measurement,sep="__")
+      
+      htm@wellSummary[[medpolish_name]] = rep(NA,nrow(htm@wellSummary))
+         
+      for(experiment in experiments) {
+      
+        indices_all <- which((htm@wellSummary$experiment == experiment))
+        
+        # extract values
+        htm@wellSummary[indices_all, measurement]
+        xy = htm_convert_wellNum_to_xy(htm@wellSummary[indices_all, "wellNum"]) 
+        print(length(xy$x))
+        print(htm@wellSummary[indices_all, measurement])
+        mp = htmMedpolish(x=xy$x, y=xy$y, val=htm@wellSummary[indices_all, measurement])
+        print(mp$residuals)
+        print(indices_all)
+        htm@wellSummary[indices_all, medpolish_name] = mp$residuals
+        
+        } # experiment loop
+    
+        measurement = medpolish_name
+          
+    } #medpolish
+    
+  
+    print("")
+    print("Computing Normalisations...")
+    
+    zScoreName = paste("zScore",measurement,sep="__")
+    robust_z_score_name = paste("robust_z_score",measurement,sep="__")
+    minusMeanCtrlName = paste("minusMeanCtrl",measurement,sep="__")
+    
+    htm@wellSummary[[zScoreName]] <- rep(NA,nrow(htm@wellSummary))
+    htm@wellSummary[[minusMeanCtrlName]] <- rep(NA,nrow(htm@wellSummary))
+    htm@wellSummary[[robust_z_score_name]] <- rep(NA,nrow(htm@wellSummary))
+    
+    
+    # init documentation of control values
+    
+    if(transformation == "log2") {
+      ctrls_mean_name = "ctrls__log2__position_mean"
+      ctrls_median_name = "ctrls__log2__position_median"
+      ctrls_sd_name = "ctrls__log2__position_sd"
+      ctrls_mad_name = "ctrls__log2__position_mad"        
+    } else {
+      ctrls_mean_name = "ctrls__position_mean"
+      ctrls_median_name = "ctrls__position_median"
+      ctrls_sd_name = "ctrls__position_sd"
+      ctrls_mad_name = "ctrls__position_mad"      
+    }
+    
+    htm@wellSummary[[ctrls_mean_name]] <- rep(NA,nrow(htm@wellSummary))
+    htm@wellSummary[[ctrls_median_name]] <- rep(NA,nrow(htm@wellSummary))
+    htm@wellSummary[[ctrls_sd_name]] <- rep(NA,nrow(htm@wellSummary))
+    htm@wellSummary[[ctrls_mad_name]] <- rep(NA,nrow(htm@wellSummary))
+    
+    
+    
+    for(experiment in experiments) {
+      print("")
+      #print(paste("  Experiment:",experiment))
+      
+      indices_all <- (htm@wellSummary$experiment == experiment)
+      indices_ok <- (htm@wellSummary$experiment == experiment) & (htm@wellSummary$wellQC)
+      if("all treatments" %in% negcontrols) {
+        indices_controls_ok <- indices_ok
+      } else {
+        #indices_controls_ok <- (htm@wellSummary$experiment == experiment) & (htm@wellSummary$treatment == control) & (htm@wellSummary$wellQC) 
+        # combine different controls:
+        indices_controls_ok <- (htm@wellSummary$experiment == experiment) & (htm@wellSummary$treatment %in% negcontrols) & (htm@wellSummary$wellQC)       
+      }
+      
+      #print(paste("    Wells Total", sum(indices_all)))
+      #print(paste("    Wells Valid", sum(indices_ok)))      
+      #print(paste("    Wells Valid Control", sum(indices_controls_ok)))
+      
+      # here values are extracted 
+      valuescontrol <- htm@wellSummary[indices_controls_ok, measurement]
+      print(measurement)
+      
+      if("all treatments" %in% negcontrols) {
+        print("") 
+      } else {
+        print("    Valid Control Wells:")
+        #for (id in which(indices_controls_ok==T)) {
+        #  print(paste("      WellNum:",htm@wellSummary$wellNum[id]))
+        #  print(paste("        Treatment:",htm@wellSummary$treatment[id]))
+        #  print(paste("        Value:",htm@wellSummary[[measurement]][id]))
+        #  print(paste("        Objects:",htm@wellSummary$numObjects[id]))
+        #  print(paste("        Images_OK:",htm@wellSummary$numImages[id]))
+        #}
+      }
+      
+      nr_of_controls <-  length(valuescontrol)
+      meancontrol <- mean(valuescontrol)    
+      sigmacontrol <- sd(valuescontrol) 
+      mediancontrol <- median(valuescontrol)
+      madcontrol <- mad(valuescontrol)  
+      semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
+      print(paste("    Control Mean:", meancontrol))
+      print(paste("    Control StdD:", sigmacontrol))
+      print(paste("    Control Median:", mediancontrol))
+      print(paste("    Control MAD:", madcontrol))
+      
+      
+      
+      htm@wellSummary[indices_all, ctrls_mean_name] <- meancontrol
+      htm@wellSummary[indices_all, ctrls_sd_name] <- sigmacontrol
+      htm@wellSummary[indices_all, ctrls_median_name] <- mediancontrol
+      htm@wellSummary[indices_all, ctrls_mad_name] <- madcontrol
+      
+      # computed scores on a well level
+      htm@wellSummary[indices_all, zScoreName] <- ( htm@wellSummary[indices_all, measurement] - meancontrol ) / ( sigmacontrol )
+      htm@wellSummary[indices_all, robust_z_score_name] <- ( htm@wellSummary[indices_all, measurement] - mediancontrol ) / ( madcontrol )
+      htm@wellSummary[indices_all, minusMeanCtrlName] <- ( htm@wellSummary[indices_all, measurement] - meancontrol )
+
+      } # experiment loop
+  
+     
+  
+  # output
+  print("");print("Experiments:")
+  print(experiments)
+  print("");print("Negative controls:")
+  print(negcontrols)
+  #print("");print("Well normalisation method:")
+  #print(normmethod)
+  print("");print("Measurement:")
+  print(measurement)
+ 
+  return(htm@wellSummary)
+    
+}
+
+htmTreatmentSummary <- function(htm) {
+  
+  print("")
+  print("Treatment Summary:")
+  print("******************")
+  print("")
+  
+  # get all necessary information
+  experiments <- unique(htm@wellSummary$experiment)
+  well_z_score <- colnames(htm@wellSummary)[which(grepl("^zScore__",colnames(htm@wellSummary)))]
+  well_robust_z_score <- colnames(htm@wellSummary)[which(grepl("^robust_z_score__",colnames(htm@wellSummary)))]  
+  wellMinusMeanCtrlScores <- colnames(htm@wellSummary)[which(grepl("^minusMeanCtrl__",colnames(htm@wellSummary)))]
+  # todo: make this clean: depends on well Summary method selected
+  well_raw_score <- colnames(htm@wellSummary)[which(grepl("^wellscore__",colnames(htm@wellSummary)))]
+  wellLogScore <- colnames(htm@wellSummary)[which(grepl("^log2__",colnames(htm@wellSummary)))]
+  withinReplMethod <- htmGetListSetting(htm,"statistics","treatmentWithinReplicateSummaryMethod")
+  minNumValidReplicates <- htmGetListSetting(htm,"statistics","TreatQC_Minimum_Number_Valid_Replicates")
+  treatments <- sort(unique(htm@wellSummary$treatment))
+  #ctrls <- htm@settings@ctrlsNeg
+  negative_ctrl <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  positive_ctrl <- c(htmGetListSetting(htm,"statistics","positiveControl"))
+  
+  normalisationMethod <- htmGetListSetting(htm,"statistics","normalisationMethod")
+  
+  # output
+  print("");print("Experiments:")
+  print(experiments)
+  print("");print("Treatment Within Replicate Averaging Method:")
+  print(withinReplMethod)
+  print("");print("Number of Treatments:")
+  print(length(treatments))
+  print("");print(paste("Negative Control:",negative_ctrl))
+  print(""); print("")
+  print(wellMinusMeanCtrlScores)
+  
+  # check whether we know everything            
+  if( is.null(experiments) ||
+    is.null(well_z_score) ||
+    length(well_z_score) ==0
+  #  methods=="None selected" ||
+  #  is.na(minNumValidWells) ||
+  #  is.null(htm@data[["HTM_qcWells"]]) ||
+  #  length(treatments)==0
+  ) 
+  {
+    print("")
+    print("  ERROR: cannot perform analysis due to lacking information (see above).")
+    gmessage("Error: see R console output.")
+    return(htm)
+  }
+  
+  numEntries = length(treatments) * length(methods) 
+  
+  transformation <- htmGetListSetting(htm,"statistics","transformation")
+  
+  results <- data.frame(measurement__positions=rep(NA,numEntries),
+                        controls=rep(NA,numEntries),  
+                        treatment=rep(NA,numEntries),
+                        t_test__positions__estimate=rep(NA,numEntries),
+                        t_test__positions__p_value=rep(NA,numEntries),
+                        t_test__positions__signCode=rep(NA,numEntries),
+                        t_test__positions__contributing_replicates=rep(NA,numEntries),
+                        #ANOVA_pValue=rep(NA,numEntries),
+                        #ANOVA_signCode=rep(NA,numEntries), 
+                        #ANOVA_estimate=rep(NA,numEntries), 
+                        #ANOVA_std_error=rep(NA,numEntries),
+                        median__z_score=rep(NA,numEntries),
+                        median__robust_z_score=rep(NA,numEntries),
+                        #mean_of_controls=rep(NA,numEntries),
+                        measurement__images=rep(NA,numEntries),
+                        t_test__images__p_value=rep(NA,numEntries),
+                        t_test__images__estimate=rep(NA,numEntries),
+                        t_test__images__signCode=rep(NA,numEntries),    
+                        mean_objects_per_image=rep(NA,numEntries),
+                        #scorename=rep(NA,numEntries),
+                        #mean=rep(NA,numEntries),
+                        #sem=rep(NA,numEntries),
+                        #QC=rep(NA,numEntries),
+                        numObjectsOK=rep(NA,numEntries),
+                        numImagesOK=rep(NA,numEntries), 
+                        numReplicatesOK=rep(NA,numEntries),
+                        numPositionsOK=rep(NA,numEntries),
+                        #numPositions=rep(NA,numEntries),
+                        stringsAsFactors = FALSE
+  )
+  
+  
+  if(!(htmGetListSetting(htm,"statistics","compute_image_based_stats_TF") == T) ) {
+    results$measurement__images = NULL
+    results$t_test__images__p_value=NULL
+    results$t_test__images__estimate=NULL
+    results$t_test__images__signCode=NULL
+  }
+  
+  
+  ids_treatments = split(1:nrow(htm@wellSummary), htm@wellSummary$treatment)
+    
+  i = 0
+  res = c(0)
+  
+  #if(transformation == "log2") {
+  #  wellScoreForANOVA = wellLogScore
+  #} else if (transformation == "none") {
+  #  wellScoreForANOVA = wellRawScore 
+  #}
+  #print(paste("wellscore used for ANOVA:", wellLogScore))
+  
+    
+  #for(wellscore in wellscores) {
+  print("Analyzing...")
+
+  for(ids in ids_treatments) {
+    
+    wellQCs <- htm@wellSummary[ids,"wellQC"]
+    idsOK = ids[ which( (htm@wellSummary[ids,"wellQC"]==1) & !(htm@wellSummary[ids,"experiment"] %in% htmGetVectorSettings("statistics$experiments_to_exclude"))) ] 
+    objectsOK <- htm@wellSummary[idsOK,"numObjectsOK"]
+    numImagesOK <- htm@wellSummary[idsOK,"numImagesOK"]
+      
+    if(withinReplMethod=="mean_of_wells") {
+      z_scores <- tapply(htm@wellSummary[idsOK,well_z_score],htm@wellSummary$experiment[idsOK],mean)
+      robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],mean)  
+    } else if(withinReplMethod=="median_of_wells") {  
+      z_scores <- tapply(htm@wellSummary[idsOK,well_z_score],htm@wellSummary$experiment[idsOK],median)
+      robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],median)    
+    }  
+    
+    
+    # *****************
+    # T-test positions
+    # *****************
+    
+    # treatment name
+    treat <- htm@wellSummary$treatment[ids[1]]
+    
+    # init
+    t_test__positions__p_value = NA
+    t_test__positions__signCode = NA
+    t_test__positions__estimate = NA
+    t_test__positions__contributing_replicates = NA
+    
+    if(!(treat %in% negative_ctrl)) {
+      # experiments containing this treatment
+      exps <- unique(htm@wellSummary[ids,"experiment"])
+      # subset the treatment wells that passed QC and controls that past QC
+      d <- subset(htm@wellSummary, (treatment  %in% c(treat,negative_ctrl)) 
+                  & (experiment %in% exps) 
+                  & !(experiment %in% htmGetVectorSettings("statistics$experiments_to_exclude")) 
+                  & (wellQC==1), 
+                  select = c("treatment",wellMinusMeanCtrlScores,"experiment"))
+      # rearrange the data 
+      d$treatment = ifelse(d$treatment %in% negative_ctrl, "control", d$treatment)
+      
+      t_test__positions__contributing_replicates = paste(unique(d$experiment),collapse=";")
+      
+      #if(treat=="CCDC15--s36890") {
+      #  print(t_test__positions__contributing_replicates) 
+      # print("execution stopped")
+      #  print(treat)
+      #  return(d)
+      #}
+      
+      
+      if ( (sum(d$treatment=="control")>1) & (sum(d$treatment==treat)>1) & (length(exps)>0) ) {
+        
+        names(d)[names(d)==wellMinusMeanCtrlScores] <- "value"
+        
+        
+        if(sum(is.na(d$value))>0) {
+          print(d)
+          print("NA detected")
+          fffs
+        }
+        
+        #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
+        d$treatment <- as.factor(d$treatment)
+        d$treatment <- relevel( d$treatment, "control" ) # control must be the 1st level for the linear model
+        t <- t.test(d$value ~ d$treatment, var.equal=TRUE)
+        #print(length(unique(d$exp)))
+        nBlocks = length(unique(d$experiment)) 
+        n = nrow(d)
+        #print(2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 ))
+        
+        t_test__positions__p_value <- 2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 )
+        t_test__positions__estimate <- t$estimate[2]
+        t_test__positions__signCode <- ifelse(t_test__positions__p_value<0.001,"***",
+                              ifelse(t_test__positions__p_value<0.01,"**",
+                                  ifelse(t_test__positions__p_value<0.05,"*",
+                                         ifelse(t_test__positions__p_value<0.1,"."," "
+                                         ))))
+        
+        ctrl_values = subset(d, d$treatment=="control", select = "value" )
+        
+        #mean_of_ctrls <- mean(d$value[d$treatment=="control"])
+        #print(d$value[d$treatment=="control"])
+        
+        #if(0){
+        if(grepl("PLK3",treat)) {  #CETN2--s2928
+          print(d)
+        }
+      }
+    }
+  
+    
+    i=i+1
+    results$treatment[i] <- htm@wellSummary$treatment[ids[1]]
+    results$measurement__positions[i] <- wellMinusMeanCtrlScores 
+    #results$ANOVA_estimate[i] <- estimate
+    #results$ANOVA_std_error[i] <- stderror        
+    #results$ANOVA_pValue[i] <- p_value
+    #results$ANOVA_signCode[i] <- signCode
+    results$t_test__positions__p_value[i] = t_test__positions__p_value
+    results$t_test__positions__signCode[i] = t_test__positions__signCode
+    results$t_test__positions__estimate[i] = t_test__positions__estimate
+    results$t_test__positions__contributing_replicates[i] = t_test__positions__contributing_replicates
+    results$median__z_score[i] <- median(z_scores)
+    results$median__robust_z_score[i] <- median(robust_z_scores) 
+    #results$mean_of_controls[i] <- mean_of_ctrls
+    results$controls[i] <- paste(negative_ctrl,collapse=" ")
+    results$numObjectsOK[i] <- sum(objectsOK)
+    results$numImagesOK[i] <- sum(numImagesOK)
+    results$mean_objects_per_image[i] <- sum(objectsOK)/sum(numImagesOK)
+    results$numPositionsOK[i] <- sum(wellQCs)
+    #results$numPositions[i] <- length(wellQCs)
+    results$numReplicatesOK[i] <- length(z_scores)
+  } # position treatment loop
+  
+  
+  
+  ## image based stats
+  
+  if( htmGetListSetting(htm,"statistics","compute_image_based_stats_TF") == T ) {
+    
+    measurement <- htmGetListSetting(htm,"statistics","measurement")
+    experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
+    experiments_to_exclude <- htmGetVectorSettings("statistics$experiments_to_exclude")
+    negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+    transformation <- htmGetListSetting(htm,"statistics","transformation")
+    
+    
+    # select log2 data in case data transformation is selected
+    if(transformation == "log2") {
+      measurement_minusMeanCtrl = paste(measurement,"log2","minusMeanCtrl",sep="__")    
+    } else {
+      measurement_minusMeanCtrl = paste(measurement,"minusMeanCtrl",sep="__")    
+    }
+  
+    
+    #for(wellscore in wellscores) {
+    print("Computing sub-position (image) based statistics...")
+    
+    ids_treatments = split(1:nrow(htm@data), htm@data[[htm@settings@columns$treatment]])
+    
+    for(ids in ids_treatments) {
+      
+      # ********************************
+      # T-test images 
+      # ********************************
+      
+      # treatment name
+      treat <- htm@data[ids[1],htm@settings@columns$treatment]
+      #print(treat)
+      #print(negative_ctrl)
+      if(treat %in% negative_ctrl) {
+        t_test__images__p_value = NA
+        t_test__images__signCode = NA
+        t_test__images__estimate = NA
+      } else {  
+        # experiments containing this treatment
+        exps <- unique(htm@data[ids,htm@settings@columns$experiment])
+        #print(exps)
+        #print("subset the treatment images that passed QC and controls that past QC")
+        #print(measurement_minusMeanCtrl)
+        d <- subset(htm@data, 
+                    (htm@data[[htm@settings@columns$treatment]] %in% c(treat,negative_ctrl))
+                    & (htm@data[[htm@settings@columns$experiment]] %in% exps) 
+                    & !(htm@data[[htm@settings@columns$experiment]] %in% htmGetVectorSettings("statistics$experiments_to_exclude")) 
+                    & (htm@data[["HTM_qcImages"]]==1), 
+                    select = c(htm@settings@columns$treatment,measurement_minusMeanCtrl,htm@settings@columns$experiment))
+        names(d)[names(d)==measurement_minusMeanCtrl] <- "value"
+        names(d)[names(d)==htm@settings@columns$treatment] <- "treatment"
+        names(d)[names(d)==htm@settings@columns$experiment] <- "experiment"
+        d$treatment = ifelse(d$treatment %in% negative_ctrl, "control", d$treatment)
+            
+        if ( (sum(d$treatment=="control")>1) & (sum(d$treatment==treat)>1) ) {
+          
+          #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
+          d$treatment <- as.factor(d$treatment)
+          d$treatment <- relevel( d$treatment, "control" ) # control must be the 1st level for the linear model
+          t <- t.test(d$value ~ d$treatment)  # as there typically is enough data no equal variance is assumed
+          
+          nBlocks = length(unique(d$experiment)) 
+          n = nrow(d)
+          #print(2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 ))
+          
+          t_test__images__p_value <- 2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 )
+          t_test__images__estimate <- t$estimate[2]
+          t_test__images__signCode <- ifelse(t_test__images__p_value<0.001,"***",
+                                                ifelse(t_test__images__p_value<0.01,"**",
+                                                       ifelse(t_test__images__p_value<0.05,"*",
+                                                              ifelse(t_test__images__p_value<0.1,"."," "
+                                                              ))))
+          
+          #if(0){
+          if(F & treat=="s36721--CEP76") {  #CETN2--s2928
+            print(t)
+            print(n)
+            print(n - (nBlocks-1) - 2)
+            print(t_test__p_value)
+            return(t)
+            dt <- d
+          }
+        } else {
+          t_test__images__p_value = NA
+          t_test__images__signCode = NA
+          t_test__images__estimate = NA
+        }
+      }
+      
+      #print(treat)
+      #print(t_test__images__p_value)
+      #print(t_test__images__estimate)
+      
+      i = which(results$treatment == treat)
+      results$measurement__images[i] = measurement_minusMeanCtrl
+      results$t_test__images__p_value[i] = t_test__images__p_value
+      results$t_test__images__signCode[i] = t_test__images__signCode
+      results$t_test__images__estimate[i] = t_test__images__estimate
+      
+  
+      
+    } # image loop
+  }
+  
+  print("")
+  print("done. created Treatment Summary Table.")
+  
+  
+  # Diagnostics 
+  
+  #hist(res)
+  #dev.new()
+  #qqnorm(res)
+  #qqline(res)
+  #print(wellScoreForANOVA)
+  
+  # display controls plot: raw well scores
+  #print("Plot control scores...")
+  #htmJitterplot(htm, cx="experiment", cy=well_raw_score, .ylab=well_raw_score, datatype="wells", 
+  #              treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+  #              showMedian = F, showMean = T)
+  
+  # display controls plot: batch corrected well scores
+  #print("Plot batch corrected control scores...")
+  #htmJitterplot(htm, cx="experiment", cy=wellMinusMeanCtrlScores, .ylab=wellMinusMeanCtrlScores, datatype="wells", 
+  #              treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+  #              showMedian = F, showMean = T)
+  
+  
+  # save controls plot
+#  htmJitterplot(htm, cx="experiment", cy=wellScoreForANOVA, .ylab=wellScoreForANOVA, datatype="wells", 
+#                treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+#                showMedian = F, showMean = T, save2file = T, newdev = F)
+  
+  # save histogram as plot
+#  print(paste("histo:",wellMinusMeanCtrlScores))
+#  htmHisto(wellMinusMeanCtrlScores, datatype="wells", treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"), save2file=T)
+  
+  #htm@wellSummary$exp_treat = paste(htm@wellSummary$experiment,htm@wellSummary$treatment,sep="_")
+  #edit(htm@wellSummary$exp_treat)
+  #print(wellMinusMeanCtrlScores)
+  # todo: plot only if makes sense
+  #htmJitterplot(htm, cx="exp_treat", cy=wellMinusMeanCtrlScores, .ylab=wellMinusMeanCtrlScores, datatype="wells", 
+  #                treatmentSubset = c(htmGetListSetting(htm,"statistics","negativeControl"),htmGetListSetting(htm,"statistics","positiveControl")),
+  #                showMedian = F, showMean = T, save2file = F, newdev = F)
+  
+  
+  #####
+  
+  if(positive_ctrl != "None selected") {
+    
+    print("Checking how well positive and negative controls are separated in each batch...")
+    print("")
+    print(paste("Measurement:",wellMinusMeanCtrlScores))
+    print("")
+    
+    
+    for(exp in experiments) {
+      
+      #print(exp)
+        d <- subset(htm@wellSummary, (experiment==exp) & (wellQC==1), select = c("treatment",wellMinusMeanCtrlScores))
+        names(d)[names(d)==wellMinusMeanCtrlScores] <- "value"
+       
+        d_neg <- subset(d,d$treatment == negative_ctrl)
+        mean_neg = mean(d_neg$value)
+        sd_neg = sd(d_neg$value)
+        n_neg = length(d_neg$value)
+        
+        d_pos <- subset(d,d$treatment == positive_ctrl)
+        mean_pos = mean(d_pos$value)
+        sd_pos = sd(d_pos$value)
+        n_pos = length(d_pos$value)
+        
+        #print(paste(min_neg,max_neg,mean_pos,sd_pos))
+        #probability_of_pos_outside_neg = 1 - integrate( function(x) {dnorm(x,mean=mean_pos,sd=sd_pos)}, min_neg, max_neg)$value
+        z_score = (mean_pos-mean_neg) / sd_neg
+        #t_value = (mean_pos-mean_neg) / sqrt(sd_pos^2+sd_neg^2)
+        
+        
+        #print(paste0(exp,"  N_neg: ",n_neg,"  N_pos: ",n_pos,"  Probability: ",round(probability_of_pos_outside_neg,3))) #,"  t-value: ",t_value))
+        quality = ifelse(abs(z_score)>3,"***",
+                         ifelse(abs(z_score)>2,"**",
+                                ifelse(abs(z_score)>1,"*"," "
+                                       )))
+        if ( exp %in% htmGetVectorSettings("statistics$experiments_to_exclude") ) {
+          comment = "***Excluded.  " 
+          } else {
+          comment = ""
+          }
+          
+        print(paste0(comment,exp,"  N_neg: ",n_neg,"  N_pos: ",n_pos,"  z-score of positive controls: ",round(z_score,3)," ",quality)) #,"  t-value: ",t_value))
+
+    }
+  }
+  
+  
+  # sorted hit-list with significance level * ** ***
+  # plot colored according to significance level
+  #with hits marked as sign
+  
+  results_ordered <- results[order(results$t_test__positions__p_value),]
+  return(results_ordered)
+  
+}
+
+htmMedpolish <- function(xx, yy, val) {
+  
+  ny = htm@settings@visualisation$number_positions_y
+  nx = htm@settings@visualisation$number_positions_x
+  
+  m = matrix(nrow=nx,ncol=ny)
+  mi = m 
+  for(i in seq(1:length(val))) {
+    print(paste(xx[i],yy[i],val[i]))
+    m[xx[i],yy[i]] <- val[i]
+    mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
+  }
+  #print("raw"); dev.new(); image(m, col=gray((0:32)/32))
+  
+  med = medpolish(m, maxiter = 100, na.rm = T)
+  m_gradient <-  med$overall + outer(med$row,med$col, "+")
+  m_residuals <- m - m_gradient
+  
+  #print("gradient"); dev.new(); image(m_gradient, col=gray((0:32)/32))
+  #print("residuals"); dev.new(); image(m_residuals, col=gray((0:32)/32))
+  
+  # covert back
+  val_gradient = vector(length=length(val))
+  val_residual = vector(length=length(val))
+  for(i in seq(1:length(val))) {
+    val_gradient[mi[xx[i],yy[i]]] = m_gradient[xx[i],yy[i]]
+    val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
+  }
+  
+  
+  list(gradient = val_gradient,
+      residuals = val_residual)
+}
+
+
+
+
+  
