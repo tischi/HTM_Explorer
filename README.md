@@ -33,9 +33,9 @@ https://github.com/tischi/HTM_Explorer/archive/master.zip).
 
 ### Starting the HTM Explorer ###
 
-Start R and type below commands replacing `/path/to/` by the location of the HTM folder:
+Start R and type below commands replacing `/path/to/` by the location of the HTM Explorer folder:
 
-`setwd("/path/to/HTM"); source("install.R");`
+`setwd("/path/to/HTM_Explorer"); source("run.R");`
 
 Now you see the graphical user interface popping up and you are ready to go. 
 
