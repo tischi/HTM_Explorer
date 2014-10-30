@@ -15,8 +15,8 @@ sapply(libs, function(x) do.call("library", list(x)))
 
 options(warn = 2)
 
-#path = "C:/Users/Christian Tischer/Dropbox/R/HTM/";setwd(path);source("install.R"); 
-#path = "/Users/tischi/Dropbox/R/HTM";setwd(path);source("install.R"); 
+#path = "C:/Users/Christian Tischer/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
+#path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
 
 ## source code
 #setwd(path);source("install.R"); 

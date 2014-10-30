@@ -1360,11 +1360,14 @@ htmTreatmentSummary <- function(htm) {
   
   if(positive_ctrl != "None selected") {
     
+    print("")
+    print("")
     print("Checking how well positive and negative controls are separated in each batch...")
-    print("")
     print(paste("Measurement:",wellMinusMeanCtrlScores))
+    print(paste("Positive control:",positive_ctrl))
+    print(paste("Negative control:",negative_ctrl))
     print("")
-    
+  
     
     for(exp in experiments) {
       
@@ -1389,12 +1392,11 @@ htmTreatmentSummary <- function(htm) {
         
         
         #print(paste0(exp,"  N_neg: ",n_neg,"  N_pos: ",n_pos,"  Probability: ",round(probability_of_pos_outside_neg,3))) #,"  t-value: ",t_value))
-        quality = ifelse(abs(z_score)>3,"***",
-                         ifelse(abs(z_score)>2,"**",
-                                ifelse(abs(z_score)>1,"*"," "
-                                       )))
+        quality = ifelse(abs(z_score)<1,"XX",
+                         ifelse(abs(z_score)<2,"X",""
+                                       ))
         if ( exp %in% htmGetVectorSettings("statistics$experiments_to_exclude") ) {
-          comment = "***Excluded.  " 
+          comment = "(Excluded)  " 
           } else {
           comment = ""
           }

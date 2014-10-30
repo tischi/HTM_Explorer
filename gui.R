@@ -550,11 +550,7 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
   
   
   gp <- ggroup(horizontal = T, container=w)
-  
-  obj <- gbutton("Close", container = gp, handler = function(h,...) {
-    dispose(w)
-  })
-  
+
   obj <- gbutton("Help", editable=FALSE, container = gp, handler = function(h,...) { guiShowHelpFile("visualisation_settings.md") } )
   
   
@@ -707,7 +703,7 @@ gui_JitterPlot <- function(datatype="images"){
   
   if(datatype=="images") {
     
-    gbutton("Click and view", container = gp, handler = function(h, ...){
+    gbutton("Click & View", container = gp, handler = function(h, ...){
       if(dev.cur()==1) {
         print("No plot open.")
       } else {
@@ -863,7 +859,7 @@ guiHandler_ScatterPlot <- function(h,...){
                    newdev = F)
   })
   
-  gbutton("Click and view", container = gp, handler = function(h, ...){
+  gbutton("Click & View", container = gp, handler = function(h, ...){
     if(dev.cur()==1) {
       print("No plot open.")
     } else {
@@ -1027,7 +1023,7 @@ guiHandler_SetColumns <- function(h, ...) {
   
   gg <- ggroup(horizontal = TRUE, container=w, expand=T)
   
-  gbutton(" Close ", container = gg, handler = function(h,...) {
+  gbutton(" Apply ", container = gg, handler = function(h,...) {
     htm <- get("htm", envir = globalenv()) 
     cTreat = htmGetListSetting(htm,"columns","treatment",gui=T)
     cBatch = htmGetListSetting(htm,"columns","experiment",gui=T)
@@ -1305,12 +1301,9 @@ guiHandler_htmLoadSetttings <- function(h,...){
 }
 
 guiHandler_htmSaveSetttings <- function(h,...){
-  
   .path = gfile("Save as...", type="save")
   htmSaveSetttings(htm,.path)
-  
 }
-
 
 
 
@@ -1321,13 +1314,12 @@ guiHandler_htmSaveSetttings <- function(h,...){
 
 mbl <- list()
 
-mbl$Main$"Help"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
 #mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
 mbl$Main$"Load image table"$handler = guiHandler_LoadImageTable
 mbl$Main$"Load configuration"$handler = guiHandler_htmLoadSetttings
 mbl$Main$"Save configuration"$handler = guiHandler_htmSaveSetttings
 mbl$Main$Configure$"Assay columns"$handler = guiHandler_SetColumns
-mbl$Main$Configure$"Plotting"$handler = guiHandler_VisualisationSettings
+mbl$Main$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
 #mbl$Main$Configure$"Load config"$handler = guiHandler_htmLoadSetttings
 mbl$Main$Quit$handler = function(h,...) {dispose(w)}
 mbl$Main$Quit$icon = "quit"
@@ -1352,6 +1344,12 @@ mbl$Tables$"Position table"$"View"$handler = function(h,...) { edit(htm@wellSumm
 mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "wellSummary", path)}
 mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }
 mbl$Tables$"Treatment table"$"Save"$handler =  function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "treatmentSummary", path)}
+
+mbl$Help$"Input data format"$handler =  function(h,...) { guiShowHelpFile("input_data_format.md") }
+mbl$Help$"Assay column configuration"$handler =  function(h,...) { guiShowHelpFile("assay_column_configuration.md") }
+mbl$Help$"Visualisation settings"$handler =  function(h,...) { guiShowHelpFile("visualisation_settings.md") }
+mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
+
 
 #mbl$Special$"Add columns"$handler = guiHandler_AddColumns
 

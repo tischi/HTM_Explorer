@@ -375,7 +375,9 @@ htmMakeAllHeatmaps <- function(htm, datatype = "images", measurement, path, mark
   
 
   # plot color bar in front
-  colorbar(colorRampPalette(c("blue","white","red"))(255), min=colorLUT.min, max=colorLUT.max, newdevice=F)
+  if(!(colorLUT.autoscale==T)) {
+    colorbar(colorRampPalette(c("blue","white","red"))(255), min=colorLUT.min, max=colorLUT.max, newdevice=F)
+  }
   
   
   for(experiment in experiments) {

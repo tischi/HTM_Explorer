@@ -2,11 +2,11 @@
 
 ### Loading your data and configuration ###
 
-The input data to the HTM Explorer must be a single comma separated value (csv) table, where each row corresponds to one image; load this table with
+The input data to the HTM Explorer must be a single comma separated value (csv) table, where each row corresponds to one image; load this table:
 
 `Main..Load Image Table`
 
-You can view its content with
+You can view its content:
 
 `Tables..Image Table..View`
 
@@ -14,17 +14,17 @@ If you already have a configuration file, load it with *(it is important that yo
 
 `Main..Load configuration`
 
-If this is a new assay, configure which information is stored in which column of your table with (check the help button in this menu item for more information):
+If this is a new assay, configure which information is stored in which column of your table (check the help button in this menu item for more information):
 
 `Main..Configure..Assay columns`
 
-Now you should also configure some settings that are important for the plotting functionality with (check the help button in this menu item for more information):
+Now you should also configure some settings that are important for the plotting functionality (check the help button in this menu item for more information):
 
-`Main..Configure..Plotting`
+`Main..Configure..Visualisation settings`
 
-Now save the configurations with
+Now save the configurations:
 
-`Main..Configure..Save config`
+`Main..Configure..Save configuration`
 
 *Please note that there are more settings in the __Analysis__ menu item that are also saved in the configuration file. It therefore is a good idea to save the configuration file again after you modified the analysis settings!*
  

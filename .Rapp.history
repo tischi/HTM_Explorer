@@ -1,0 +1,252 @@
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T); results <- htmTreatmentSummary(htm)
+?lm
+100/101
+hist(htm@wellSummary$MeanRatioScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
+hist(htm@wellSummary$wellscore__centroCellsDivAllCells__weighted_mean_of_images)
+colnames(htm@wellSummary)
+hist(htm@wellSummary$logScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
+hist(htm@wellSummary$MeanRatioScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
+hist(htm@wellSummary$minusMeanCtrl__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
+log2(10)
+summary(htm@wellSummary$wellscore__centroCellsDivAllCells__weighted_mean_of_images)
+hist(htm@wellSummary$wellscore__centroCellsDivAllCells__weighted_mean_of_images)
+plot(htm@wellSummary$wellscore__centroCellsDivAllCells__weighted_mean_of_images)
+plot(htm@wellSummary$logScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
+traceback()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@wellSummary)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@wellSummary)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@wellSummary)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+is.numeric(c(1,Inf,2))
+which(is.numeric(c(1,Inf,2)))
+Inf
+is.numeric(Inf)
+??is.numeric
+?is.numeric
+?Inf
+is.finite(c(1,Inf,-Inf,NA))
+a = c(1,Inf,-Inf,NA)
+is.finite(a)
+aOK = subset(a,is.finite(a))
+aOK
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+1
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@wellSummary)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+log2(20)-log2(10)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+traceback()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htm@wellSummary$wellQC[1, "wellQC"]
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+2^(1.825763)
+2^(-1.825763)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+2^(-1.825763)
+x=-1.825763
+sign(x)*2^abs(x)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+?subset
+warnings()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+warnings()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+warnings()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+traceback()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+edit(htm@data)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htm@settings@columns$experiment
+htm@settings@columns$treatment
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmGetVectorSettings(htm,"treatmentSelectionForPlotting")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmJitterplot(htm,"","")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmGetListSetting("visualisation","jitterPlot_colorizeTreatments_TF")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+?vector
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htm@data$centroCellsDivAllCells = htm@data$Count_CentroCells / htm@data$Count_CentroCells
+r <- htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+?gfile
+?path
+path = gfile("Save as...", type="save", initialfilename = paste0(htmGetListSetting("statistics","measurement"),".csv"))
+path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--"htmGetListSetting("statistics","measurement"),".csv"))
+path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting("statistics","measurement"),".csv"))
+path
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+?switch
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+edit(r)
+htm
+htm@log
+htmAddLog("adasdas")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmAddLog("adasdas")
+htm@log
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmClearLog
+htmClearLog()
+htm@log
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+edit(r)
+r2 <- r(order(r$ANOVA_pValue),)
+r2 <- r[order(r$ANOVA_pValue),]
+edit(r2)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+cat(htm@log)
+path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting("statistics","measurement"),".csv"))#
+    htmSaveDataTable(htm, "treatmentSummary", path)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting("statistics","measurement"),".csv"))#
+    htmSaveDataTable(htm, "treatmentSummary", path)
+traceback()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+edit(htm@treatmentSummary)
+htm@data$centroCellsDivAllCells = htm@data$Count_CentroCells / htm@data$Count_Cells
+head(htm@data$centroCellsDivAllCells)
+cat(htm@log)
+htmAddLog("aaa")
+cat(htm@log)
+htmAddLog(htm@wellSummary$treatment[1])
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+cat(htm@log)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmPrintLog()
+cat(htm@log)
+cat(htm@Log)
+cat(htm@log)
+htmClearLog()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmPrintLog()
+cat(htm@log)
+htmPrintLog()
+length(htmPrintLog())
+htmClearLog()
+htmPrintLog()
+htmAddLog("asss")
+htmPrintLog()
+htmPrintLog("SAdasd")
+htmAddLog("assasdadss")
+htmPrintLog("SAdasd")
+htmPrintLog()
+htmClearLog()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmPrintLog()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmClearLog()
+htmPrintLog()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htm@log
+cat(htm@log)
+htmClearLog()
+htmShowLog9)
+htmShowLog())
+htmShowLog()
+htmPrintLog()
+htmAddLog("");htmAddLog("Experiments:")
+htmPrintLog()
+htmAddLog("");htmAddLog("Experiments:")
+htmPrintLog()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r <- htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htm@data$CentroCells_div_AllCells = htm@data$Count_CentroCells / htm@data$Count_Cells
+head(htm@data$CentroCells_div_AllCells)
+htmGetListSetting("statistics","normalisationMethod")
+htmGetListSetting("statistics","transformation")
+dev.copy(png,'myplot.png')
+pwd
+getwd()
+?dev.copy
+?jpeg
+png(filename="/Users/tischi/Dropbox/R/test.png")
+?png
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+hist(htm@data$CentroCells_div_AllCells)
+dev.off()
+hist(htm@data$CentroCells_div_AllCells)
+png('/Users/tischi/Dropbox/test.png')
+hist(htm@data$CentroCells_div_AllCells)
+dev.off()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+dev.off()
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+?pdf
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+r<-htmTreatmentSummary(htm)
+colnames(htm@wellSummary)
+hist(htm$wellSummary$minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images)
+hist(htm@wellSummary$minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images)
+dev.off()
+hist(htm@wellSummary$minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmHisto(minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images, datatype="wells", treatmentSubset="s229174--Scramble")
+htmHisto("minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images", datatype="wells", treatmentSubset="s229174--Scramble")
+htmHisto("minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images", datatype="wells")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmHisto("minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images", datatype="wells", treatmentSubset="s229174--Scramble")
+?hist
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmHisto("minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images", datatype="wells", treatmentSubset="s229174--Scramble")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+htmHisto("minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images", datatype="wells", treatmentSubset="s229174--Scramble", save2file=T)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@wellSummary)
+hist(htm@wellSummary$minusMeanCtrl__CentroCells_div_AllCells__weighted_mean_of_images)
+qqplot(htm@wellSummary$minusMeanCtrl__CentroCells_div_AllCells__weighted_mean_of_images)
+?qqplot
+qqnorm(htm@wellSummary$minusMeanCtrl__CentroCells_div_AllCells__weighted_mean_of_images)
+colnames(htm@wellSummary)
+qqnorm(htm@wellSummary$minusMeanCtrl__log2__CentroCells_div_AllCells__weighted_mean_of_images)
+htmGetVectorSettings(htm, "treatmentSelectionForPlotting")
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T);
+colnames(htm@data)
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T)
+htm@data$plate = "myPlate"
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T)
+htm@data$subpos = 1
+source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T)
+path = "C:/Users/Christian Tischer/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("install.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("install.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+install.packages("markdown")
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+htm@data
+log2(20)
+log2(10)
+log2(40)
+head(htm@data)
+colnames(htm@data)

@@ -20,4 +20,5 @@ Examples:
 
 ### Path to FIJI ###
 
-check that the "Path to FIJI" is correctly set for your computer.
+Check that the "Path to FIJI" is pointing to an executable of ImageJ/Fiji.
+For instance: "C:\Users\Bill\Desktop\Fiji.app\ImageJ-win64.exe
