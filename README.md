@@ -1,18 +1,22 @@
-## HTM Explorer: installation and starting ##
+## HTM Explorer: help, installation and starting up ##
+
+### More help on functionality and usage ###
+
+Go to the [HELP FOLDER](https://github.com/tischi/HTM_Explorer/tree/master/help) and just select any of the *.md files.
 
 
 ### Installation of R ###
 
-you need an R version > 3.0
-
-do not use R Studio!
+First, you need to install the free software R (you'll need a version > 3.0). It will not work with R Studio!
 
 [R on the web](http://www.r-project.org/)
 
-make sure the Tcl/Tk libraries are part of the installation package; normally this is the case by default.
+Make sure the Tcl/Tk libraries are part of the installation package; normally this is the case by default.
 
 
 ### Installation of R packages ###
+
+In order to run the HTM Explorer you'll need to install a few R packages.
 
 Start R; within the R console window type:
 
@@ -27,17 +31,17 @@ Note: if you are using Windows 7 it may ask you whether it should install it as 
 
 ### Installation of the HTM Explorer ###
 
-Simply copy all the files somewhere onto your computer; you can download the files from [github](
-https://github.com/tischi/HTM_Explorer/archive/master.zip).
+Download [HTM Explorer](
+https://github.com/tischi/HTM_Explorer/archive/master.zip) and simply copy all the files somewhere onto your computer.
 
 
 ### Starting the HTM Explorer ###
 
 Start R and type below commands replacing `/path/to/` by the location of the HTM Explorer folder:
 
-`setwd("/path/to/HTM_Explorer"); source("run.R");`
+`setwd("/path/to/HTM_Explorer-master"); source("run.R");`
 
-Now you see the graphical user interface popping up and you are ready to go. 
+Now you should see the graphical user interface popping up and you are ready to go. 
 
 ### More help on usage ###
 
