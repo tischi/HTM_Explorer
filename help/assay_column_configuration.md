@@ -25,10 +25,10 @@ In high-throughput screening such a measurement batch typically is considered to
 
 
 
-### Position (Well) coordinate (needed for Batch heatmap and Statistics) ###
+### Position (Well) coordinate (needed for Heatmap plotting and Statistics) ###
 
-The column containing the position coordinate must contain plain numbers that specifies where (spatially) in your batch the measurements were taken (in the Batch Heatmap plotting tool you specify a grid according to which the positions will be displayed.)
-All images from the same position must have been subjected to the same treatment (it can be that there are multiple positions subjected to the same treatment). In the statistics tool there are "position-based" statistics computed, where in a first step all images from one position are averaged and the significance testing is then done by comparing multiple positions (from multiple batches) (see help of Statistical analysis for details).
+The column containing the position coordinate must contain plain numbers that specify where (spatially) in each batch the measurements were taken (in the Heatmap plotting tool you specify a grid according to which the positions will be displayed.)
+All images from the same position must have been subjected to the same treatment (it can be that there are multiple positions subjected to the same treatment). In the statistics tool there are "position-based" statistics computed, where in a first step all images from one position are averaged and, in a second step, the significance testing is then done by comparing different positions (from multiple batches) (see also help on statistical analysis).
 
 __Example "Plate"__: In multi-well plate experiment one position would be one well; it is often the case the a number of wells contain the same (control) treatment.
 

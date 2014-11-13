@@ -646,7 +646,19 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
       #points(round(jp.xMean),jp.yMean,pch=3,cex=2,col=rgb(0.0,0.0,1.0))
       } # compute stats
     
-   
+    if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
+      pchQC = ifelse(qc==1, 16, 4)
+    } else {  # remove data points that did not pass QC
+      vxTmp = jp.x[which(qc==1)]
+      vyTmp = jp.y[which(qc==1)]
+      colorsTmp = .colors[which(qc==1)]
+      .colors = colorsTmp
+      jp.x = vxTmp
+      jp.y = vyTmp
+      pchQC = rep(16, length(jp.x))
+    }
+    
+    
     op <- par(mar = c(8,5,4,2) + 0.1) 
     
     if( is.na(.xlim) || is.na(.ylim) ) {
@@ -855,9 +867,11 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
     } else {  # remove data points that did not pass QC
       vxTmp = vx[which(qc==1)]
       vyTmp = vy[which(qc==1)]
+      colorsTmp = .colors[which(qc==1)]
+      .colors = colorsTmp
       vx = vxTmp
       vy = vyTmp
-      pchQC = rep(16, length(qc))
+      pchQC = rep(16, length(vx))
     }
   } else {
     print("no qc column => evaluate all data")

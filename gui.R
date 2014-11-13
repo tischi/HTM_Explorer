@@ -1345,7 +1345,8 @@ mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Sav
 mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }
 mbl$Tables$"Treatment table"$"Save"$handler =  function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "treatmentSummary", path)}
 
-mbl$Help$"Input data format"$handler =  function(h,...) { guiShowHelpFile("input_data_format.md") }
+mbl$Help$"About"$handler =  function(h,...) { guiShowHelpFile("version.md") }
+mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
 mbl$Help$"Assay column configuration"$handler =  function(h,...) { guiShowHelpFile("assay_column_configuration.md") }
 mbl$Help$"Visualisation settings"$handler =  function(h,...) { guiShowHelpFile("visualisation_settings.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
