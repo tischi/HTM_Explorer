@@ -531,13 +531,6 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
                                     keys=c("heatmap_width","heatmap_image_size_cex","jitter"),    #,"heatmap_well_size_cex"
                                     container=gf)
   
-  gcheckbox("Show data points that did not pass QC", 
-            checked = htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF",gui=T), 
-            container = w, 
-            handler = function(h,...){
-              htmSetListSetting(htm, "visualisation","plotting_showQCfailData_TF",svalue(h$obj),gui=T)
-              print(paste("color points by treatment",svalue(h$obj)))
-            })
   
   
   gui_ListSettingTextfield(text = "Path to FIJI (only necessary for Windows):",
@@ -769,6 +762,14 @@ guiHandler_JitterPlot_Options <- function(h,...) {
               htmSetListSetting(htm,"visualisation","jitterPlot_scaleFromZero_TF",svalue(h$obj),gui=T)
             })
   
+  gcheckbox("Show data points that did not pass QC", 
+            checked = htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF",gui=T), 
+            container = w, 
+            handler = function(h,...){
+              htmSetListSetting(htm, "visualisation","plotting_showQCfailData_TF",svalue(h$obj),gui=T)
+            })
+  
+  
   visible(w) <- T
 }
 
@@ -903,6 +904,13 @@ guiHandler_ScatterPlot_Options <- function(h,...) {
             container = w, 
             handler = function(h,...){
               htmSetListSetting(htm, "visualisation","scatterPlot_scaleFromZero_TF",svalue(h$obj),gui=T)
+            })
+  
+  gcheckbox("Show data points that did not pass QC", 
+            checked = htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF",gui=T), 
+            container = w, 
+            handler = function(h,...){
+              htmSetListSetting(htm, "visualisation","plotting_showQCfailData_TF",svalue(h$obj),gui=T)
             })
   
   visible(w) <- T
