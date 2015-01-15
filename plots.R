@@ -442,11 +442,12 @@ htmHeatmap_MarkSelectedTreatment <- function(htm, selectedExp, selectedTreatment
         y[i] <- xy$y[ids[i]]
         }
       
+      print("mark")
       
       points(x, y, 
              pch = 22,
              lwd = 1.5,
-             cex = 1.6 * htm@settings@visualisation$heatmap_image_size_cex * max(c(htm@settings@visualisation$number_subpositions_x,htm@settings@visualisation$number_subpositions_y)),
+             cex = 2.0 * htm@settings@visualisation$heatmap_image_size_cex * max(c(htm@settings@visualisation$number_subpositions_x,htm@settings@visualisation$number_subpositions_y)),
              col = color) #22 = empty rectangle
     }
   
@@ -462,6 +463,10 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
                           action="plot", printMeanSD = T,  showMean = T, showMedian = T, save2file = F,
                           scaleFromZero = F) {
   
+  print("")
+  print("")
+  print("")
+  print("")
   print("Jitter Plot:")
   print(paste("  datatype:",datatype))
   print(paste("  x =",cx))
@@ -536,6 +541,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   jp.y <- data[ids,cy] 
   qc <- qc[ids]
   treatments <- treatments[ids]
+  #data <- data[ids,]
   
   
   print(paste("  colorizeTreatments:",colorizeTreatments==T))
@@ -548,7 +554,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   
   
   if(!is.null(qc)) {
-    print("..qc column exists!")
+    print("  ..qc column exists!")
     pchQC = ifelse(qc==1, 16, 4) 
     jp.y.qc <- ifelse(qc==1, jp.y, NA)
   } else {
@@ -568,6 +574,24 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     }
   }
   
+  if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
+    pchQC = ifelse(qc==1, 16, 4)
+  } else {  # remove data points that did not pass QC
+    vxTmp = jp.x[which(qc==1)]
+    vyTmp = jp.y[which(qc==1)]
+    colorsTmp = .colors[which(qc==1)]
+    print(length(ids))
+    idsTmp = ids[which(qc==1)]
+    ids = idsTmp
+    print(length(ids))
+    .colors = colorsTmp
+    jp.x = vxTmp
+    jp.y = vyTmp
+    pchQC = rep(16, length(jp.x))
+    print(paste("removed data points due to QC",sum(qc==0)))
+  }
+  
+  
   if(action=="plot") {
     
     if(save2file) {
@@ -577,88 +601,9 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     } else if(newdev){
       dev.new()
     }
-    
-    
+     
     cat(paste("\n\njitter-plotting",cy,"vs.",cx,"\n"))
-    
-    # compute summary statistics
-    if(T) {
       
-      jp.xMean = tapply(jp.x, factors, function(z) {mean(z,na.rm=T)})
-      
-      jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
-      jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
-      
-      jp.yMedian = tapply(jp.y.qc, factors, function(z) {median(z,na.rm=T)})
-      jp.yMAD = tapply(jp.y.qc, factors, function(z) {mad(z,na.rm=T)})
-      
-      jp.ySEM = tapply(jp.y.qc, factors, function(z) {sem(z)})
-      jp.ySEMabove = tapply(jp.y.qc, factors, function(z) {sem_above(z)})
-      jp.ySEMbelow = tapply(jp.y.qc, factors, function(z) {sem_below(z)})
-      jp.nOK = tapply(jp.y.qc, factors, function(z) {sum(z/z, na.rm=T)})
-      jp.nAll = tapply(jp.y, factors, function(z) {length(z)})
-      
-      
-      # comparison statistics
-      if(F) {
-      
-        print("")
-        print("*** Statistics:")
-        print("")
-        
-        reference = htmGetListSetting(htm,"wellSummary","reference")
-        idsRef = which(factors==reference)
-        
-        if(sum(idsRef)>0) {
-          print(paste("Reference:",reference))
-          print("")
-          m.ctrl = mean(jp.y.qc[idsRef],na.rm=T)
-          sd.ctrl = sd(jp.y.qc[idsRef],na.rm=T)
-          median.ctrl = median(jp.y.qc[idsRef],na.rm=T)
-          mad.ctrl = mad(jp.y.qc[idsRef],na.rm=T)
-          
-          for(factor in levels(factors)) {
-            if(!factor==reference) {
-              idsTest = which(factors==factor)
-              tt <- t.test(x=jp.y.qc[idsRef],y=jp.y.qc[idsTest])
-              m.test = mean(jp.y.qc[idsTest],na.rm=T)
-              sd.test = sd(jp.y.qc[idsTest],na.rm=T)
-              median.test = median(jp.y.qc[idsTest],na.rm=T)
-              mad.test = mad(jp.y.qc[idsTest],na.rm=T)
-              zFactor = round(1 - 3*(sd.ctrl+sd.test)/abs(m.ctrl-m.test),2)
-              zScore = round(abs(m.test-m.ctrl)/sd.ctrl,2)
-              robust_zScore = round(abs(median.test-median.ctrl)/mad.ctrl,2)
-              significance = ""
-              if(tt$p.value < 0.05) significance = "(*)"
-              if(tt$p.value < 0.01) significance = "(**)"
-              #print(paste(factor,"; Z-score = ",zScore,"; Robust Z-score = ",robust_zScore,"; Z-factor = ",zFactor,"; T-test = ",round(tt$p.value,4),significance))  
-              #print(paste(factor,"; T-test = ",round(tt$p.value,10),significance))  
-              print(paste(factor,": T-test = ",tt$p.value,significance))  
-              
-            }
-          }
-        } 
-      } else {
-        #print("no valid Reference selected.")
-      }
-        
-      
-      #points(round(jp.xMean),jp.yMean,pch=3,cex=2,col=rgb(0.0,0.0,1.0))
-      } # compute stats
-    
-    if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
-      pchQC = ifelse(qc==1, 16, 4)
-    } else {  # remove data points that did not pass QC
-      vxTmp = jp.x[which(qc==1)]
-      vyTmp = jp.y[which(qc==1)]
-      colorsTmp = .colors[which(qc==1)]
-      .colors = colorsTmp
-      jp.x = vxTmp
-      jp.y = vyTmp
-      pchQC = rep(16, length(jp.x))
-    }
-    
-    
     op <- par(mar = c(8,5,4,2) + 0.1) 
     
     if( is.na(.xlim) || is.na(.ylim) ) {
@@ -715,6 +660,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     print("click and view")
     if(datatype=="images") {
       i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
+      print(paste("y-axis value =",data[ids[i],cy]))
       htmShowImagesFromRow(htm,data[ids,],i)
     } else if(datatype=="wells") {
       i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
@@ -773,14 +719,17 @@ htmHisto <- function(cx,  experimentSubset = "None selected", treatmentSubset= "
 htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", colorize="None selected", experimentSubset="None selected", treatmentSubset="None selected", newdev=T, action="plot") {
    
   
-  print(paste("Data type =",datatype))
+  print("")
+  print("")
+  print("Scatter Plot:")
+  print(paste("  Data type =",datatype))
   
   
   if(datatype=="images") {
     
     data <- htm@data
     
-    print(paste("Treatment subset =",treatmentSubset))
+    print(paste("  Treatment subset =",treatmentSubset))
     
     if(experimentSubset[1] != "None selected")  data <- subset(data, data[[htm@settings@columns$experiment]] %in% experimentSubset)
     if(treatmentSubset[1] != "None selected") data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
@@ -788,6 +737,7 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
     qc <- data$HTM_qcImages
     treatments <- data[[htm@settings@columns$treatment]]
     experiments <- data[[htm@settings@columns$experiment]]
+  
   }
   
   if(datatype=="objects") {
@@ -814,7 +764,7 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
       validIDs <- htm@data[[clink]]
     } 
     data <- subset(data, data[[clink]] %in% validIDs)
-    print(nrow(data))
+    #print(nrow(data))
     
     finalIDs <- data[[clink]]
     if(!is.null(htm@data$HTM_qcImages)) {
@@ -861,20 +811,22 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
 
   
   if(!is.null(qc)) {
-    print("qc column exists!")
+    print("  ..qc column exists!")
     if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
       pchQC = ifelse(qc==1, 16, 4)
     } else {  # remove data points that did not pass QC
       vxTmp = vx[which(qc==1)]
       vyTmp = vy[which(qc==1)]
+      dataTmp = data[which(qc==1),]
       colorsTmp = .colors[which(qc==1)]
       .colors = colorsTmp
       vx = vxTmp
       vy = vyTmp
+      data = dataTmp
       pchQC = rep(16, length(vx))
     }
   } else {
-    print("no qc column => evaluate all data")
+    print("  ..no qc column => show all data")
     pchQC = rep(16,length(vx))
   }
   
@@ -933,6 +885,8 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   if(action=="click") {
     if(datatype=="images") {
       i <- identify(vx, vy, n = 1, plot = FALSE)
+      print(paste("  x-axis value =",data[i,cx]))
+      print(paste("  y-axis value =",data[i,cy]))
       htmShowImagesFromRow(htm,data,i)
     } else if(datatype=="wells") {
       i <- identify(vx, vy, n = 1, plot = FALSE)

@@ -108,7 +108,7 @@ htm_convert_wellNum_posNum_to_xy <- function(wellNum, posNum) {
   
   ### SUBPOSITIONS
   
-  plate.image.distance = 0.6/max(plate.nposcol,plate.nposrow);
+  plate.image.distance = 0.4/max(plate.nposcol,plate.nposrow);
   #plate.image.size.cex <<- 2.5/plate.nposcol
   plate.posNumToRow = vector(length=plate.npos);
   plate.posNumToCol = vector(length=plate.npos);
@@ -331,11 +331,11 @@ htmSetListSetting <- function(htm, setting, key, value, gui = F) {
   if(gui==T) {
     htm <- get("htm", envir = globalenv()) 
   }
-  print(setting)
-  print(key)
-  print(value)
+  #print(setting)
+  #print(key)
+  #print(value)
   
-  print(paste0("htmSetListSetting(htm" , ",'" , setting, "','" , key , "','" , value , "',gui=T)"))
+  #print(paste0("htmSetListSetting(htm" , ",'" , setting, "','" , key , "','" , value , "',gui=T)"))
   .list = eval(parse(text=paste("htm@settings@",setting,sep="")))
   .list[[key]]=value
   eval(parse(text=paste("htm@settings@",setting," <- .list",sep=""))) 
