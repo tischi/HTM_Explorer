@@ -1,25 +1,123 @@
-<h2>Configure vizualisation settings</h2>
+<h2>Typical workflow using the HTM tool</h2>
 
-<h3>Path mapping</h3>
+<h3>Loading your data and configuration</h3>
 
-<p>In order to open images you need to teach the software about the location of the images on your computer. Often the folder is different on your computer right now as it was while the analysis was done.</p>
+<p>The input data to the HTM Explorer must be a single comma separated value (csv) table, where each row corresponds to one image; load this table:</p>
 
-<p>Please inspect the columns in your table where the paths to your images are stored and find out what is different on your computer.</p>
+<p><code>Main..Load Image Table</code></p>
 
-<p>Examples:</p>
+<p>You can view its content:</p>
+
+<p><code>Tables..Image Table..View</code></p>
+
+<p>If you already have a configuration file, load it with <em>(it is important that you first loaded your image table, because otherwise your settings may not be loaded correctly)</em></p>
+
+<p><code>Main..Load configuration</code></p>
+
+<p>If this is a new assay, configure which information is stored in which column of your table (check the help button in this menu item for more information):</p>
+
+<p><code>Main..Configure..Assay columns</code></p>
+
+<p>Now you should also configure some settings that are important for the plotting functionality (check the help button in this menu item for more information):</p>
+
+<p><code>Main..Configure..Visualisation settings</code></p>
+
+<p>Now save the configurations:</p>
+
+<p><code>Main..Configure..Save configuration</code></p>
+
+<p><em>Please note that there are more settings in the <strong>Analysis</strong> menu item that are also saved in the configuration file. It therefore is a good idea to save the configuration file again after you modified the analysis settings!</em></p>
+
+<h3>Check whether the image table contains all data</h3>
+
+<p>Execute <code>Analysis..Assay overview</code> and check the information in the R terminal window!
+If something is inconsistent with your expectations something might have gone wrong during the analysis which generated the image table.</p>
+
+<h3>Visually check your experimental batches</h3>
+
+<p>Use <code>Plot..Heatmap</code> to inspect your data. As Measurements you typically inspect:</p>
 
 <ul>
-<li><p>If you ran the analysis on the <strong>EMBL computing cluster</strong> and are now on <strong>Windows</strong> you will have to enter something like</p>
-
-<p><code>image_root_foldername_in_table = /g/almfscreen/</code>
-<code>image_root_foldername_on_this_computer = //almfscreen/almfscreen/</code></p></li>
-<li><p>If you ran the analysis on the <strong>EMBL computing cluster</strong> and are now on a <strong>Mac</strong> you will have to enter something like</p>
-
-<p><code>image_root_foldername_in_table = /g/almfscreen/</code>
-<code>image_root_foldername_on_this_computer = /Volumes/almfscreen/</code></p></li>
+<li>Cell count in order to check your cell seeding etc.</li>
+<li>Your assay readout</li>
 </ul>
 
-<h3>Path to FIJI</h3>
+<p>Use the <strong>Click and View</strong> button to inspect suspicious (outlier) images</p>
 
-<p>Check that the &ldquo;Path to FIJI&rdquo; is pointing to an executable of ImageJ/Fiji.
-For instance: &ldquo;C:\Users\Bill\Desktop\Fiji.app\ImageJ-win64.exe</p>
+<h3>Automated per-image quality control</h3>
+
+<p>Find threshold values for image-based quality using </p>
+
+<pre><code>Plot..ScatterPlot 
+    x-axis: not so important, maybe cell count 
+    y-axis: an image quality measurement (see below)
+</code></pre>
+
+<p>Typical measurements for automated image-based quality control are</p>
+
+<ul>
+<li><strong>Focus quality</strong> (e.g., <em>ImageQuality<em>PowerLogLogSlope</em></em> in CellProfiler) </li>
+<li><strong>Cell count</strong> as too high/low cell density can affect your readout (see below)</li>
+</ul>
+
+<p>Use <strong>Click and View</strong> to check which numbers correspond to &ldquo;bad&rdquo; images and use them in <code>Analysis..Image QC</code>.</p>
+
+<h3>Check whether your readout correlates with cell density</h3>
+
+<p>Quite often, due to technical and biological reasons, the readout of an assay correlates with cell density. Check this using</p>
+
+<pre><code>Plots..Scatter plot
+    x-axis: cell count
+    y-axis: your readout
+</code></pre>
+
+<p>If you find a correlation you have to think about what to do&hellip;</p>
+
+<h3>Check whether your controls worked</h3>
+
+<pre><code>Plots..Jitter plot images
+    Label axis: treatment (e.g., Metadata_siRNA_gene)
+    Value axis: your assay readout
+    Treatment selection: your positive and negative controls
+</code></pre>
+
+<p>Do this batch by batch using the <code>Experiment selection</code> or make a new column in your image table containing both batch and treatment information and use this as the label axis. You can generate such a column (named <strong>batch_treat</strong>) in the R console window using the following command (this only works like this if you set the assay columns already as described above):</p>
+
+<pre><code>htm@data$batch_treat = paste(htm@data[[htm@settings@columns$experiment]], htm@data[[htm@settings@columns$treatment]],sep=&quot;–-&quot;)
+</code></pre>
+
+<p>For doing the same with the per-position data using <code>Jitter plot positions</code> you need to type</p>
+
+<pre><code>htm@wellSummary$plate_treat = paste(htm@wellSummary$experiment, htm@wellSummary$treatment ,sep=&quot;-–&quot;)
+</code></pre>
+
+<h3>Compute a per-position and per-treatment score from the images</h3>
+
+<p>Execute <code>Analysis..Statistical Analysis</code> carefully reading the <code>Help</code> of this menu item.</p>
+
+<h3>Check the results of the per-position computation</h3>
+
+<p>either using </p>
+
+<pre><code>Tables..Well Table..View
+Plots..Heatmap
+    Data set: positions
+</code></pre>
+
+<p>or saving the table with <code>Tables..Position Table..Save</code> and inspecting the results in something like Excel.</p>
+
+<p>Tips for Excel:</p>
+
+<pre><code>View...Freeze Panes..Freeze Top Row (keeps the header column in view)
+Home..Sort and Filter..Filter
+</code></pre>
+
+<h3>Check the results of the per-treatment computation</h3>
+
+<p>Saving the table with <code>Tables..Treatment table..Save</code> and inspect the results in something like Excel.</p>
+
+<h3>More useful R commands (to be used in the console window)</h3>
+
+<p>Converting <strong>siRNA&ndash;gene</strong> to <strong>gene&ndash;siRNA</strong>, the latter being usually better for alphabetic sorting.</p>
+
+<p><code>htm@data$treatment = unlist(lapply(htm@data$Metadata_siRNA_gene, function(x) paste(strsplit(x,&quot;--&quot;)[[1]][2],strsplit(x,&quot;--&quot;)[[1]][1],sep=&quot;--&quot;)))</code></p>

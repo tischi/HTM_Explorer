@@ -489,6 +489,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
       data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
     }
     qc <- data$HTM_qcImages
+   
     treatments <- data[[htm@settings@columns$treatment]]
     
   }
@@ -504,6 +505,14 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     treatments <- data$treatment
     
     }
+  
+  
+  if(!is.null(qc)) {
+    print("..qc column exists => computing statistics only for points that passed QC")
+  } else {
+    print("..no qc column => evaluate all data")
+    qc = rep(1, nrow(data))
+  }
    
   print(paste("  sorting:",sorting))
   if(sorting=="none") {
@@ -553,27 +562,38 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   }  
   
   
-  if(!is.null(qc)) {
-    print("  ..qc column exists!")
-    pchQC = ifelse(qc==1, 16, 4) 
+
+  
+  
+  # compute some statistics for printing and plotting
+    
     jp.y.qc <- ifelse(qc==1, jp.y, NA)
-  } else {
-    print("..no qc column => evaluate all data")
-    pchQC = rep(16, nrow(data))
-    jp.y.qc <- jp.y
-  }
+    jp.x.qc <- ifelse(qc==1, jp.x, NA)
   
-  
-  #print(paste("..Mean SD:",printMeanSD))
-  if(printMeanSD) {
-    cat("\n\n\nLabel   Mean   SD\n")
+    if(printMeanSD) {
+      cat("\n\n\nLabel   Mean   SD\n")
+      jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
+      jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
+      for(i in 1:length(jp.yMean)) {
+        print(paste(names(jp.yMean)[i],jp.yMean[i],jp.ySD[i],sep="   "))     
+      }
+    }
+      
+    # compute stats for plotting
+    jp.xMean = tapply(jp.x.qc, factors, function(z) {mean(z,na.rm=T)})
     jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
     jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
-    for(i in 1:length(jp.yMean)) {
-      print(paste(names(jp.yMean)[i],jp.yMean[i],jp.ySD[i],sep="   "))     
-    }
-  }
+    jp.yMedian = tapply(jp.y.qc, factors, function(z) {median(z,na.rm=T)})
+    jp.yMAD = tapply(jp.y.qc, factors, function(z) {mad(z,na.rm=T)})
+    jp.ySEM = tapply(jp.y.qc, factors, function(z) {sem(z)})
+    jp.ySEMabove = tapply(jp.y.qc, factors, function(z) {sem_above(z)})
+    jp.ySEMbelow = tapply(jp.y.qc, factors, function(z) {sem_below(z)})
+    jp.nOK = tapply(jp.y.qc, factors, function(z) {sum(z/z, na.rm=T)})
+    jp.nAll = tapply(jp.y, factors, function(z) {length(z)})
   
+  
+  
+  # remove non QC datapoints from the jp.x and jp.y by
   if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
     pchQC = ifelse(qc==1, 16, 4)
   } else {  # remove data points that did not pass QC
