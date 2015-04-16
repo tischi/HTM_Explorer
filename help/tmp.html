@@ -1,123 +1,146 @@
-<h2>Typical workflow using the HTM tool</h2>
+<h1>Statistical Analysis</h1>
 
-<h3>Loading your data and configuration</h3>
+<h2>Batch effects</h2>
 
-<p>The input data to the HTM Explorer must be a single comma separated value (csv) table, where each row corresponds to one image; load this table:</p>
+<p>Biological data typically consist of measurement &ldquo;batches&rdquo;.</p>
 
-<p><code>Main..Load Image Table</code></p>
-
-<p>You can view its content:</p>
-
-<p><code>Tables..Image Table..View</code></p>
-
-<p>If you already have a configuration file, load it with <em>(it is important that you first loaded your image table, because otherwise your settings may not be loaded correctly)</em></p>
-
-<p><code>Main..Load configuration</code></p>
-
-<p>If this is a new assay, configure which information is stored in which column of your table (check the help button in this menu item for more information):</p>
-
-<p><code>Main..Configure..Assay columns</code></p>
-
-<p>Now you should also configure some settings that are important for the plotting functionality (check the help button in this menu item for more information):</p>
-
-<p><code>Main..Configure..Visualisation settings</code></p>
-
-<p>Now save the configurations:</p>
-
-<p><code>Main..Configure..Save configuration</code></p>
-
-<p><em>Please note that there are more settings in the <strong>Analysis</strong> menu item that are also saved in the configuration file. It therefore is a good idea to save the configuration file again after you modified the analysis settings!</em></p>
-
-<h3>Check whether the image table contains all data</h3>
-
-<p>Execute <code>Analysis..Assay overview</code> and check the information in the R terminal window!
-If something is inconsistent with your expectations something might have gone wrong during the analysis which generated the image table.</p>
-
-<h3>Visually check your experimental batches</h3>
-
-<p>Use <code>Plot..Heatmap</code> to inspect your data. As Measurements you typically inspect:</p>
+<p>Typically, a batch is defined by data that are &ldquo;comparable&rdquo;; this could be due to</p>
 
 <ul>
-<li>Cell count in order to check your cell seeding etc.</li>
-<li>Your assay readout</li>
+<li>cells from same passage number are used</li>
+<li>antibody stainings are from same &ldquo;mix&rdquo;</li>
+<li>data was acquired in same microscopy session</li>
 </ul>
 
-<p>Use the <strong>Click and View</strong> button to inspect suspicious (outlier) images</p>
+<p>In high-throughput screening such a measurement batch typically is considered to be one multi-well plate.</p>
 
-<h3>Automated per-image quality control</h3>
+<p>As above conditions have a high probability to change between different batches one should (has to) normalize data to control measurements from the same batch.</p>
 
-<p>Find threshold values for image-based quality using </p>
+<p>Statistically this is referred to as &ldquo;handling of batch effects&rdquo;.</p>
 
-<pre><code>Plot..ScatterPlot 
-    x-axis: not so important, maybe cell count 
-    y-axis: an image quality measurement (see below)
+<p>The HTM Explorer gives you several outputs that handle batch effects in different ways (see below). </p>
+
+<h2>Multiplicative or additive effect of treatments</h2>
+
+<p>Before you start the actual analysis of your treatment effects you have to decide whether your treatment effects are multiplicative or additive to your readout.</p>
+
+<h3>Example:</h3>
+
+<p>Let&#39;s neglect batch effects for now and assume you have only one batch of measurements. Let&#39;s also not think about statistical significance for now (otherwise we would need too many numbers). Say your readout is the number of a certain type of vesicles in the cells. 
+Your control measurement gave you: </p>
+
+<pre><code>c = 20
 </code></pre>
 
-<p>Typical measurements for automated image-based quality control are</p>
+<p>and you have two independent measurements for your treatment, namely</p>
+
+<pre><code>m1 = 10
+m2 = 40
+</code></pre>
+
+<h4>Additive interpretation:</h4>
+
+<p>If you adopt an &ldquo;additive interpretation&rdquo; of your data you would say: In measurement one the number of vesicles was decreased by 10 (10-20=-10) and in measurement two  the number of vesicles was increased by 20  (40-20=+20).</p>
+
+<p>Thus, on average the treatment led to an increase in the number of vesicles, because the mean difference of control samples and treated samples is: mean(-10, +20) = +5. In other words, the expected number of vesicles in treated samples is c + 5 = 25.</p>
+
+<p>Mathematically this looks like this:</p>
+
+<pre><code>c = 20; m1 = 10; m2 = 40    
+d1 = m1 - c = -10
+d2 = m2 - c = +20
+mean(d1,d2) = +5 
+=&gt; the treatment increases the readout
+</code></pre>
+
+<h4>Multiplicative interpretation:</h4>
+
+<p>If you adopt an &ldquo;multiplicative interpretation&rdquo; of your data you would say: 
+In measurement one the number of vesicles decreased by a factor of 2 (10/20=&frac12;) and in measurement two the number of vesicles increased by factor of 2 from (40/20=2). As you got the exact opposite effect in your two measurements you would say that on average there was no effect of the treatment.</p>
+
+<p>In order to get this result mathematically one needs to take the logarithm (e.g. the log2) of the data before computing the differences:</p>
+
+<pre><code>c = 20; m1 = 10; m2 = 40    
+log2(c) = log2(20) = 4.321928
+log2(m1) = log2(10) = 3.321928
+log2(m2) = log2(40) = 5.321928
+d1 = log(m1) - log(c) = 3.321928 - 4.321928 = -1
+d2 = log(m2) - log(c) = 5.321928 - 4.321928 = +1
+mean(d1,d2) = 0 
+=&gt; no effect of the treatment
+</code></pre>
+
+<p>One can also compute a &ldquo;factor change&rdquo; from the final result by taking it to the power of 2:</p>
+
+<pre><code>2^(mean(d1,d2)) = 2^(0) = 1
+</code></pre>
+
+<p>In words: on average the treatment changes the number of vesicles by a factor of 1, i.e. there is no change.</p>
+
+<h5>Note:</h5>
+
+<p>Normalizing the data by dividing by the mean of the controls does <strong>not</strong> give you this answer:</p>
+
+<pre><code>c = 20; m1 = 10; m2 = 40    
+f1 = m1/c = 10/20 = 0.5
+f2 = m1/c = 40/20 = 2
+mean(f1,f2) = 1.25 
+=&gt; the treatment increases the readout
+</code></pre>
+
+<p>In fact if you compute the expected number of vesicles in treated sample you get</p>
+
+<pre><code>1.25 * c = 1.25 * 20 = 25 
+</code></pre>
+
+<p>This is the same answer as in the additive interpretation!</p>
+
+<h2><code>Median__z_score</code> (position based score)</h2>
+
+<p>For each batch (plate), the data of all images within one position are averaged (see above) such that we have one number per position. 
+Then a z-score is computed for each position as Z = (value - mean(ctrls)) / sd(ctrls)
+Where the mean and sd are computed across all positions that contain the selected control measurements.</p>
+
+<p>To take into account the fact that you measured multiple batches the median z-score of all the batches is computed and given in the treatmentSummary table. The logic of taking the median is: &ldquo;at least in half of the batches (replicates) there should have been a significant effect.&rdquo;; significant typically being Z&gt;2 (increase) or Z&lt;-2 (decrease).</p>
+
+<p>Issues:</p>
 
 <ul>
-<li><strong>Focus quality</strong> (e.g., <em>ImageQuality<em>PowerLogLogSlope</em></em> in CellProfiler) </li>
-<li><strong>Cell count</strong> as too high/low cell density can affect your readout (see below)</li>
+<li>the problem with this score is that the estimation of sd(ctrls) is very noisy if there are not enough control measurements. A wrong estimation of sd(ctrls) can readily render all of your measurements in the same batch as hits or non-hits. </li>
+<li>does not give you a statistical significance; for instance the value does not reflect how often you repeated your measurement</li>
 </ul>
 
-<p>Use <strong>Click and View</strong> to check which numbers correspond to &ldquo;bad&rdquo; images and use them in <code>Analysis..Image QC</code>.</p>
+<h2><code>Median__robust_z_score</code> (position based score)</h2>
 
-<h3>Check whether your readout correlates with cell density</h3>
+<p>Same as Median__z_score, but for each batch (plate) a z-score is computed as Z =  (treated - median(ctrls)) / mad(ctrls), where mad is the so called median average deviation (a median based analog to the standard deviation).</p>
 
-<p>Quite often, due to technical and biological reasons, the readout of an assay correlates with cell density. Check this using</p>
+<p>This score can make sense if you want to remove outliers in your controls, e.g. you could take the whole plate (all treatments) as controls if you expect only a limited number of hits (reference: Butros and Huber).</p>
 
-<pre><code>Plots..Scatter plot
-    x-axis: cell count
-    y-axis: your readout
-</code></pre>
+<p>Issues:</p>
 
-<p>If you find a correlation you have to think about what to do&hellip;</p>
+<ul>
+<li>same as <code>Median__z_score</code></li>
+</ul>
 
-<h3>Check whether your controls worked</h3>
+<h2><code>t_test__positions</code> (position based score)</h2>
 
-<pre><code>Plots..Jitter plot images
-    Label axis: treatment (e.g., Metadata_siRNA_gene)
-    Value axis: your assay readout
-    Treatment selection: your positive and negative controls
-</code></pre>
+<p>In a first step the batch effect is dealt with by subtracting the mean of the control positions within each batch. 
+Afterwards, for one specific treatment all batches are identified that contained this treatment and all treatment and control measurements from these batches are pooled; a t-test is performed of the treated positions against the control positions.
+Note: the t-test will compute a common variance of the batch-corrected controls across all batches that contained the treatment under consideration. This assumes that the variance of the controls is similar from batch to batch. The HTM Explorer will provide you with a graph that allows you to visually check this assummption.</p>
 
-<p>Do this batch by batch using the <code>Experiment selection</code> or make a new column in your image table containing both batch and treatment information and use this as the label axis. You can generate such a column (named <strong>batch_treat</strong>) in the R console window using the following command (this only works like this if you set the assay columns already as described above):</p>
+<p>Issues:</p>
 
-<pre><code>htm@data$batch_treat = paste(htm@data[[htm@settings@columns$experiment]], htm@data[[htm@settings@columns$treatment]],sep=&quot;–-&quot;)
-</code></pre>
+<ul>
+<li>assumes similar (within factor of 2-3) variance of controls across batches.</li>
+</ul>
 
-<p>For doing the same with the per-position data using <code>Jitter plot positions</code> you need to type</p>
+<h2><code>t_test__images</code> (images based score)</h2>
 
-<pre><code>htm@wellSummary$plate_treat = paste(htm@wellSummary$experiment, htm@wellSummary$treatment ,sep=&quot;-–&quot;)
-</code></pre>
+<p>As <code>t_test__positions</code> but the images (sub-positions) are used for the computations.</p>
 
-<h3>Compute a per-position and per-treatment score from the images</h3>
+<p>Notes:</p>
 
-<p>Execute <code>Analysis..Statistical Analysis</code> carefully reading the <code>Help</code> of this menu item.</p>
-
-<h3>Check the results of the per-position computation</h3>
-
-<p>either using </p>
-
-<pre><code>Tables..Well Table..View
-Plots..Heatmap
-    Data set: positions
-</code></pre>
-
-<p>or saving the table with <code>Tables..Position Table..Save</code> and inspecting the results in something like Excel.</p>
-
-<p>Tips for Excel:</p>
-
-<pre><code>View...Freeze Panes..Freeze Top Row (keeps the header column in view)
-Home..Sort and Filter..Filter
-</code></pre>
-
-<h3>Check the results of the per-treatment computation</h3>
-
-<p>Saving the table with <code>Tables..Treatment table..Save</code> and inspect the results in something like Excel.</p>
-
-<h3>More useful R commands (to be used in the console window)</h3>
-
-<p>Converting <strong>siRNA&ndash;gene</strong> to <strong>gene&ndash;siRNA</strong>, the latter being usually better for alphabetic sorting.</p>
-
-<p><code>htm@data$treatment = unlist(lapply(htm@data$Metadata_siRNA_gene, function(x) paste(strsplit(x,&quot;--&quot;)[[1]][2],strsplit(x,&quot;--&quot;)[[1]][1],sep=&quot;--&quot;)))</code></p>
+<ul>
+<li>For multi-well data we often observe that - for the same treatment - the images tend to give quite similar results within one well while from well to well there can be strong variations; this indicates that the variation comes from the wells (&ldquo;positions&rdquo;) and one should not pool all the images from different positions together (as it is done in this image based score), but rather use the positions based score..
+(think more about this; make an example)</li>
+</ul>

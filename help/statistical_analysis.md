@@ -87,6 +87,11 @@ In fact if you compute the expected number of vesicles in treated sample you get
 This is the same answer as in the additive interpretation!
 
 
+## Parameters
+
+### Data transformation
+
+
 ## `Median__z_score` (position based score)
 
 For each batch (plate), the data of all images within one position are averaged (see above) such that we have one number per position. 
@@ -118,6 +123,20 @@ Note: the t-test will compute a common variance of the batch-corrected controls 
 Issues:
 - assumes similar (within factor of 2-3) variance of controls across batches.
 
+### output
+
+`t_test__positions__p_value`
+
+
+`t_test__positions__estimate`
+
+The estimate is the difference of treated positions and control positions (after batch correction).
+If you chose the log2 data transformation this difference gives the fold-change of treatment vs. control (in log2 scale). To compute the actual fold change you can use this formula: 2^estimate
+
+
+
+
+
 ## `t_test__images` (images based score)
 
 As `t_test__positions` but the images (sub-positions) are used for the computations.
@@ -127,5 +146,15 @@ Notes:
 
 - For multi-well data we often observe that - for the same treatment - the images tend to give quite similar results within one well while from well to well there can be strong variations; this indicates that the variation comes from the wells ("positions") and one should not pool all the images from different positions together (as it is done in this image based score), but rather use the positions based score..
 (think more about this; make an example)
+
+
+## Statistical significance code
+
+p_value<0.001 "***"
+p_value<0.01 "**"
+
+                                                      ifelse(t_test__images__p_value<0.05,"*",
+                                                              ifelse(t_test__images__p_value<0.1,"."," "
+                                                              ))))
 
 

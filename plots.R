@@ -150,8 +150,6 @@ htmShowWellsFromRow <- function(htm,data,ir){
 }
 
 
-
-
 # d <- subset(htm@wellSummary, (experiment=="Bettencourt_centriole_assay_01_batch1_01"), select= c("minusMeanCtrl__log2__Mean_CentroCells_Math_CentrinNormTot__weighted_mean_of_images","wellNum" )
 # d2<-d[order(d$wellNum),]
 # d2s <- d2$minusMeanCtrl__log2__Mean_CentroCells_Math_CentrinNormTot__weighted_mean_of_images
@@ -446,7 +444,7 @@ htmHeatmap_MarkSelectedTreatment <- function(htm, selectedExp, selectedTreatment
       
       points(x, y, 
              pch = 22,
-             lwd = 1.5,
+             lwd = 2.25,
              cex = 2.0 * htm@settings@visualisation$heatmap_image_size_cex * max(c(htm@settings@visualisation$number_subpositions_x,htm@settings@visualisation$number_subpositions_y)),
              col = color) #22 = empty rectangle
     }
@@ -472,7 +470,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   print(paste("  x =",cx))
   print(paste("  y =",cy))
   
-  if("all treatments" %in% treatmentSubset) { 
+  if("All treatments" %in% treatmentSubset) { 
     treatmentSubset = "None selected"
   }
   
@@ -624,16 +622,18 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
      
     cat(paste("\n\njitter-plotting",cy,"vs.",cx,"\n"))
       
-    op <- par(mar = c(8,5,4,2) + 0.1) 
+    op <- par(mar=c(5.1, 4.1, 4.1, 10.1), xpd=TRUE) #par(mar = c(8,5,4,2) + 0.1) 
+    
+    dotsize = 0.75
     
     if( is.na(.xlim) || is.na(.ylim) ) {
       if(htmGetListSetting(htm,"visualisation","jitterPlot_scaleFromZero_TF")==T) {
-        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, ylim = c(0, max(jp.y)), pch=pchQC, cex=0.5, col = .colors)
+        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, ylim = c(0, max(jp.y)), pch=pchQC, cex=dotsize, col = .colors)
       } else {
-        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, pch=pchQC, cex=0.5, col = .colors)        
+        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, pch=pchQC, cex=dotsize, col = .colors)        
       }
     } else {  # zooming  
-      plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=0.5, col=.colors)
+      plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, col=.colors)
     }
     axis(1, at=1:length(lx), labels=lx, las=2,  cex.axis = 0.75)
     
@@ -641,18 +641,20 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     if(experimentSubset[1] != "None selected") {
       plotTitle = experimentSubset[1]
     } else {
-      plotTitle = "all experiments"
+      plotTitle = "All experiments"
     }
     
     if(treatmentSubset[1] != "None selected") {
       plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
     } else {
-      plotTitle = paste(plotTitle,"all treatments",sep="\n")
+      plotTitle = paste(plotTitle,"All treatments",sep="\n")
     }
     title(plotTitle)
      
     if(colorizeTreatments == T) {
-      legend(min(jp.x),max(jp.y),unique(treatments),col=1:length(treatments),pch=16)
+      dx = -0.5
+      legend("topright", inset=c(dx,0), legend = unique(treatments), col=1:length(treatments), pch=16, bty="n")
+      #min(jp.x), max(jp.y), 
     }
     
     
@@ -715,7 +717,7 @@ htmHisto <- function(cx,  experimentSubset = "None selected", treatmentSubset= "
   if(treatmentSubset[1] != "None selected") {
     plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
   } else {
-    plotTitle = paste(plotTitle,"all treatments",sep="\n")
+    plotTitle = paste(plotTitle,"All treatments",sep="\n")
   }
   
   if(save2file) {
@@ -855,15 +857,16 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
     if(newdev){
       dev.new()
     }
+    dotsize = 0.75
     op <- par(mar = c(8,5,4,2) + 0.1) 
     if(htmGetListSetting(htm,"visualisation","scatterPlot_scaleFromZero_TF")==T) {
       .ylim = c(0, max(vy))
       .xlim = c(0, max(vx))
     }
     if( is.na(.xlim) || is.na(.ylim) ) {
-      plot(vx, vy, xlab=cx, ylab=cy, pch=pchQC, cex=0.5, main="", col=.colors)
+      plot(vx, vy, xlab=cx, ylab=cy, pch=pchQC, cex=dotsize, main="", col=.colors)
     } else {    
-      plot(vx, vy, xlab=cx, ylab=cy, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=0.5, main="", col=.colors)
+      plot(vx, vy, xlab=cx, ylab=cy, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, main="", col=.colors)
     }
     par(op)
   }
@@ -873,15 +876,15 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   if(experimentSubset[1] != "None selected") {
     plotTitle = experimentSubset[1]
   } else {
-    plotTitle = "all experiments"
+    plotTitle = "All experiments"
   }
   
   if(treatmentSubset[1] != "None selected") {
     plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
   } else {
-    plotTitle = paste(plotTitle,"all treatments",sep="\n")
+    plotTitle = paste(plotTitle,"All treatments",sep="\n")
   }
-  title(plotTitle)
+  title(plotTitle, cex.main = 1)
   
   
   linefit = FALSE
@@ -899,7 +902,8 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   
   
   if(colorize=="treatment") {
-    legend(x=min(vx,na.rm=T),y=max(vy,na.rm=T),levels(factor(treatments)),col=1:length(treatments),pch=16)
+    legend("topright",legend = levels(factor(treatments)),col=1:length(treatments),pch=16)
+    # x=max(vx,na.rm=T),y=max(vy,na.rm=T),
   }
   
   if(action=="click") {

@@ -551,8 +551,6 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
   
 }
 
-
-
 guiHandler_JitterPlot_Help <- function(h,...) {
   
   w <- gwindow("", visible=F)
@@ -724,8 +722,6 @@ gui_JitterPlot <- function(datatype="images"){
   #obj <- gbutton("Click and view image", editable=TRUE, container = gp, handler = handler_showImageJitterPlot )
   
 }
-
-
 
 guiHandler_JitterPlot_Options <- function(h,...) {
   

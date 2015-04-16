@@ -308,7 +308,6 @@ htmRemoveImageQCs <- function(htm, indices) {
   
 }
 
-
 htmPrintLog <- function(){
   htm <- get("htm", envir = globalenv()) 
   cat(htm@log)
@@ -557,7 +556,8 @@ htmImageNormalization <- function(htm) {
     
     # here values are extracted 
     valuescontrol <- htm@data[indices_controls_ok, measurement]
-       
+    #print(valuescontrol)
+    
     nr_of_controls <-  length(valuescontrol)
     meancontrol <- mean(valuescontrol)    
     sigmacontrol <- sd(valuescontrol) 
@@ -1237,6 +1237,7 @@ htmTreatmentSummary <- function(htm) {
       # ********************************
       # T-test images 
       # ********************************
+    
       
       # treatment name
       treat <- htm@data[ids[1],htm@settings@columns$treatment]
