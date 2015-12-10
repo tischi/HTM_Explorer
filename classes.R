@@ -19,7 +19,8 @@ htmConstructor = setClass("htm",
                             wellSummary = "data.frame",
                             treatmentSummary = "data.frame", 
                             settings = "htmSettings",
-                            log = "character"
+                            log = "character",
+                            other = "list"
                           ))
 
 
@@ -63,6 +64,7 @@ htmMake <- function(data = data.frame()) {
     wellSummary = data.frame(),
     treatmentSummary = data.frame(), 
     settings = .settings,
+    other = list(),
     log = date()
   )  
   

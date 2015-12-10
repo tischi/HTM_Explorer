@@ -1,6 +1,60 @@
 # Viewing
 
-htmShowImagesFromRow <- function(htm,data,ir){
+htmShowTreatmentsFromRow  <- function(htm, data, ir){
+  
+  treatment = data$treatment[ir]
+  imageIds <- which((htm@data[[htm@settings@columns$treatment]]==treatment) & htm@data$HTM_qcImages)
+  iMin = imageIds[which.min(htm@data$MDD_vsTreat[imageIds])]
+  o <- order(htm@data$MDD_vsTreat[imageIds])
+  minis <- imageIds[o[1:3]]
+  
+  cols <- which(grepl("__minusMeanCtrl__zScore",colnames(htm@data)))
+  
+  print(htm@data[minis,cols])
+  
+  #print(htm@data$Count_Cells[imageIds])
+  #print(htm@data$Count_Cells[imageIds[iMin]])
+  #iRandom <- floor(runif(1, 1, length(images)+1))
+  
+  # call htmShowImagesFromRow
+  htmShowImagesFromRow(htm, htm@data, minis)
+  
+}
+
+
+htmShowObjectsFromRow <- function(htm, data, irs){
+
+  iObject = irs[1]
+  
+  print("Generating columns that link image and object table.")
+  c1 = htmGetListSetting(htm,"columns","treatment")
+  c2 = htmGetListSetting(htm,"columns","experiment")
+  c3 = htmGetListSetting(htm,"columns","wellnum")
+  c4 = htmGetListSetting(htm,"columns","posnum")  
+  data$HTM_imageobjectlink = paste(data[[c1]],data[[c2]],data[[c3]],data[[c4]],sep="--")
+  htm@data$HTM_imageobjectlink = paste(htm@data[[c1]],htm@data[[c2]],htm@data[[c3]],htm@data[[c4]],sep="--")
+  data$HTM_imageID = unlist(lapply(data$HTM_imageobjectlink, function(x) which(htm@data$HTM_imageobjectlink==x)))    
+  iImage = which(htm@data$HTM_imageobjectlink==data$HTM_imageobjectlink[iObject])
+  #print(data[iObject,])
+  #iImage = data$ImageNumber[iObject]
+  print(paste("Image Number", iImage))
+  xObject = round(data$Location_Center_X[iObject])
+  yObject = round(data$Location_Center_Y[iObject])
+  treatment = htm@data[[htmGetListSetting(htm,"columns","treatment")]][iImage]
+  
+  #cmd = paste0(' -eval \"run(\'setTool(\'point\')\');\"')
+  #cmd = paste0('  -eval \"wait(500);\" ')
+  
+  cmd = paste0('  -eval \"rename(\'',treatment,'\');\" ')  
+  cmd = paste0(cmd, ' -eval \"makePoint(',xObject,',',yObject,');\"')
+  #print(cmd)
+  
+  htmShowImagesFromRow(htm,htm@data,iImage,cmd)
+
+}
+
+
+htmShowImagesFromRow <- function(htm,data,irs,appendCommand=""){
   
   #print(paste("image for viewing",imageforviewing))
   
@@ -22,114 +76,91 @@ htmShowImagesFromRow <- function(htm,data,ir){
   
   images <- vector()
   
-  for ( colname in colnames(data) ) {
-       
-    if( foldernamePrefix != "" ) {  
-      # construct pathname from file- and folder-name
-      
-      if( grepl(filenamePrefix,colname) ) {
+  for ( ir in irs) {
+    
+    for ( colname in colnames(data) ) {
+         
+      if( foldernamePrefix != "" ) {  
+        # construct pathname from file- and folder-name
         
-        imagename = strsplit(colname,filenamePrefix)[[1]][2]
-        filename = data[[colname]][ir]
-        cFolder = paste(foldernamePrefix,imagename,sep="")
-        #print(cFolder)
-        foldername = gsub("\\\\" ,"/",data[[cFolder]][ir])
-        foldername = gsub(rootFolderTable, rootFolderReal, foldername)
-        
-        if ( .Platform$OS.type == "unix" ) {
-          #foldername = gsub("\\\\" ,"/", foldername)
-          #pathname = paste('"',foldername,"/",filename,'"',sep="")
-          pathname = paste(foldername,"/",filename,sep="")
-        } else if ( .Platform$OS.type == "windows" ) {
-          #foldername = gsub("/", "\\\\", foldername)
-          #pathname = paste("\"",foldername,"\\",filename,"\"",sep="")
-          pathname = paste(foldername,"/",filename,sep="")
-        }
-        
-        if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
-          images[length(images)+1] <- pathname
-          print(pathname)
-        }      
-        
-       
-      }
-      
-    } else {
-      
-      # directly get the pathname=filename
-      if( grepl(filenamePrefix,colname) ) {
-        
-        imagename = strsplit(colname,filenamePrefix)[[1]][2]
-        if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
-          print(colname)
-          pathname = gsub("\\\\" ,"/",data[[colname]][ir])
-          #print(pathname)
-          #print(rootFolderReal)
-          #print(rootFolderTable)
-          pathname = gsub(rootFolderTable, rootFolderReal, pathname)
-          #print(pathname)
+        if( grepl(filenamePrefix,colname) ) {
+          
+          imagename = strsplit(colname,filenamePrefix)[[1]][2]
+          filename = data[[colname]][ir]
+          cFolder = paste(foldernamePrefix,imagename,sep="")
+          #print(cFolder)
+          foldername = gsub("\\\\" ,"/",data[[cFolder]][ir])
+          foldername = gsub(rootFolderTable, rootFolderReal, foldername)
           
           if ( .Platform$OS.type == "unix" ) {
-            pathname = gsub("\\\\" ,"/", pathname)
+            #foldername = gsub("\\\\" ,"/", foldername)
+            #pathname = paste('"',foldername,"/",filename,'"',sep="")
+            pathname = paste(foldername,"/",filename,sep="")
           } else if ( .Platform$OS.type == "windows" ) {
-            pathname = gsub("/", "\\\\", pathname)
+            #foldername = gsub("/", "\\\\", foldername)
+            #pathname = paste("\"",foldername,"\\",filename,"\"",sep="")
+            pathname = paste(foldername,"/",filename,sep="")
           }
+          
+          if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
+            images[length(images)+1] <- pathname
+            print(pathname)
+          }      
+          
+         
+        }
         
-          images[length(images)+1] <- pathname
-          #print(pathname)
-        }      
+      } else {
+        
+        # directly get the pathname=filename
+        if( grepl(filenamePrefix,colname) ) {
+          
+          imagename = strsplit(colname,filenamePrefix)[[1]][2]
+          if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
+            print(colname)
+            pathname = gsub("\\\\" ,"/",data[[colname]][ir])
+            #print(pathname)
+            #print(rootFolderReal)
+            #print(rootFolderTable)
+            pathname = gsub(rootFolderTable, rootFolderReal, pathname)
+            #print(pathname)
+            
+            if ( .Platform$OS.type == "unix" ) {
+              pathname = gsub("\\\\" ,"/", pathname)
+            } else if ( .Platform$OS.type == "windows" ) {
+              pathname = gsub("/", "\\\\", pathname)
+            }
+          
+            images[length(images)+1] <- pathname
+            #print(pathname)
+          }      
+          
+        }
         
       }
-      
+
     }
-      
+    
   }
 
   
   if(length(images)) {
     
-    #imlist <- data.frame(x=images)
-    #edit(imlist)
-    #print(getwd())
-    #write.table(imlist,file="imagelist.txt",row.names=F,col.names=F,quote=F)
-    
-    #fileConn<-file("imagelist.txt", open="wt")
-    #for(image in images) {
-    #  if(image!=images[length(images)]) {
-    #    writeChar(image, fileConn, eos="\n")
-    #  } else {
-    #    #print("last image")
-    #    writeChar(image, fileConn, eos=NULL) 
-    #  }
-    #}
-    #sink()
-    #print(images)
-    #writeLines(images,fileConn)
-    #writeLines(images,fileConn)
-    #close(fileConn)
-    #Sys.sleep(0.5)
-    
-    #fileConn<-file("imagelist.txt", open="r")
-    #print(readLines(fileConn))
-    #close(fileConn)
-       
-    # java -jar ...jython.jar:.../ij.jar script.py argument
-    
-    #if ( .Platform$OS.type == "unix" ) {
-    #  pathmacro = paste("'",getwd(),"/","stackfromlist.py","'",sep="")
-    #  #argument = paste("'",getwd(),"/","imagelist.txt"," ",expname,"'",sep="")
-    #  argument = paste("'",getwd(),"/","imagelist.txt","'",sep="")
-    #  
-    #} else if ( .Platform$OS.type == "windows" ) {
-    #  pathmacro = paste("\"",getwd(),"\\","stackfromlist.py","\"",sep="")
-    #  argument = paste("\"",getwd(),"\\","imagelist.txt","'",expname,"\"",sep="")
-    #}
-  
     #cmd = paste(imageViewerCMD,pathmacro,argument)
     cmd = imageViewerCMD
     for(image in images) {
-      cmd = paste(cmd,paste(' -eval \"open(\'',image,'\')\"',sep=""))
+      cmd = paste(cmd, paste0(' -eval \"open(\'',image,'\')\"') )
     }
+    
+    if(length(images)>1) {
+      # make stack
+      cmd = paste(cmd, paste0(' -eval \"run(\'Images to Stack\');\"'))
+      # make composite
+      #cmd = paste(cmd, paste0(' -eval \"run(\'Make Composite\', \'display=Composite\');\"'));  
+    }
+    
+   
+    cmd = paste(cmd,appendCommand)
     print(cmd)
     system(cmd,wait=F)
     
@@ -173,6 +204,29 @@ htmShowHeatmap <- function(htm, selectedExp="", selectedMeasurement, markQC = T,
     dat <- subset(htm@wellSummary, (htm@wellSummary$experiment==selectedExp) );
   }
   
+  if(datatype == "objects") { # convert to image frame
+    
+    dat <- subset(htm@data,(htm@data[[htm@settings@columns$experiment]]==selectedExp), select=c(selectedMeasurement, htm@settings@columns$wellnum, htm@settings@columns$posnum))
+    
+    dat <-  ddply(dat, c(htm@settings@columns$wellnum, htm@settings@columns$posnum), function(z) {
+          if(is.numeric(z)) {
+            apply(z, 2, mean)
+          } else {
+            apply(z, 2, function(z) {z[1]})
+          }
+        }
+      )
+    
+   
+    dat[[selectedMeasurement]] = as.numeric( dat[[selectedMeasurement]] )
+    dat[[htm@settings@columns$posnum]] = as.numeric( dat[[htm@settings@columns$posnum]] )
+    if(!any(grepl("(?i)[A-Z]", dat[[htm@settings@columns$wellnum]]))) {
+      dat[[htm@settings@columns$wellnum]] = as.numeric( dat[[htm@settings@columns$wellnum]] )
+    }
+    
+  }  
+
+
   if(colorLUT.autoscale == T) {
     colorLUT.min <- quantile(dat[[selectedMeasurement]], 0.03, na.rm=T) #min(dat, na.rm=T) 
     colorLUT.max <- quantile(dat[[selectedMeasurement]], 0.97, na.rm=T) #max(dat, na.rm=T)      
@@ -203,9 +257,11 @@ htmShowHeatmap <- function(htm, selectedExp="", selectedMeasurement, markQC = T,
   
   op <- par(bg = "grey")
   
-  if(datatype=="images") {
-    print("plotting per_image data")
+  if(datatype=="images" || datatype=="objects") {
+    
+    print("plotting per_image or mean_averaged per_object data")
     xy = htm_convert_wellNum_posNum_to_xy(dat[[htm@settings@columns$wellnum]],dat[[htm@settings@columns$posnum]])
+    
     plot(x = xy$x, y = xy$y, col=colpal[dat$val], 
          ylim = rev(range(xy$y)),  
          xlim = round(range(xy$x)),
@@ -215,6 +271,7 @@ htmShowHeatmap <- function(htm, selectedExp="", selectedMeasurement, markQC = T,
          )
     title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
     } 
+  
   
   if(datatype=="wells") {
     print("plotting per_well data")
@@ -227,6 +284,8 @@ htmShowHeatmap <- function(htm, selectedExp="", selectedMeasurement, markQC = T,
     #repls = paste(sort(unique(htm@wellSummary$replicate[which(htm@wellSummary$layout==selectedLayout)])),collapse="-")
     title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
     } 
+  
+  
   
   axis(1, at=1:plate.ncol, labels=1:plate.ncol, las=1,  cex.axis = 1)
   axis(2, at=1:plate.nrow, labels=LETTERS[1:plate.nrow], las=2, cex.axis = 1)
@@ -297,6 +356,7 @@ htmShowHeatmap <- function(htm, selectedExp="", selectedMeasurement, markQC = T,
     
 } #htmShowHeatmap
 
+
 colorbar <- function(lut, min, max, nticks=11, ticks=seq(min, max, len=nticks), newdevice = T) {
   
   min = as.numeric(min)
@@ -327,7 +387,7 @@ colorbar <- function(lut, min, max, nticks=11, ticks=seq(min, max, len=nticks), 
   stepsize = 10
   for (i in seq(1,(length(lut)-1), by=stepsize) ) {
     y = (i-1)/scale + min
-    rect(0, y, 10, y+stepsize/scale, col=lut[i], border=NA)
+    rect(0, y - 0.5*(stepsize/scale), 10, y +  0.5*(stepsize/scale), col=lut[i], border=NA)
   }
   #par(op) 
   
@@ -338,14 +398,195 @@ colorbar <- function(lut, min, max, nticks=11, ticks=seq(min, max, len=nticks), 
 }
 
 
-scaleForDisplay <- function(values,lut_min,lut_max){
-  v = 255*(values-as.numeric(lut_min) )/(as.numeric(lut_max)-as.numeric(lut_min) )
-  toosmall = which(v<1)
-  toolarge = which(v>255)
-  v[toosmall]=1
-  v[toolarge]=255
-  return(v)
+scatterLabelPlot_treatFeat <- function(d, cX, cY, subset="None selected", exclude="None selected", xlab="", ylab="") {
+  
+  #channels <- unique(unlist(lapply(strsplit(rownames(d),"_"), function(x) {x[1]})))
+  
+  #pdf(file = "/Users/tischi/Desktop/multiScatter.pdf") #, width = 500, height = 500)
+  
+  #for (channel in channels) {
+    
+    ds <- d
+    
+  #  subset = channel
+  #  print(channel)
+    
+    if(subset != "None selected") {
+      ids = which(grepl(subset,rownames(d)))
+      ds <- ds[ids,]
+    }
+    
+    if(exclude != "None selected") {
+      print("excluding..")
+      ids = which(grepl(exclude,rownames(d)))
+      print(ids)
+      ds <- ds[-ids,]
+    }
+    
+    
+    lables = rownames(ds)
+    x = ds[[cX]]
+    y = ds[[cY]]
+    
+    plot(x, y, #xlab=cX, ylab=cY, 
+         main = "", type = "n", 
+         xlim = c(0,max(x)*1.2),
+         xlab = xlab,
+         ylab = ylab
+    ) #, 
+    text(x, y, labels = lables, cex=.7)
+
+  #}
+  
+  #dev.off()
+      
 }
+
+
+plotHeatmap_treatFeat <- function(d,LUT.min,LUT.max,subset="None selected",rotate = F, rowSubset="None selected", readout="") {
+  
+  
+  if(subset != "None selected") {
+    ids = which(grepl(subset,colnames(d)))
+    d <- d[,ids]
+  }
+    
+  d$treatment <- NULL
+  d$date <- NULL
+  
+  
+  if(rowSubset[1] != "None selected") {
+    ids = vector(length=0)
+    for(rs in rowSubset) {
+      #print(rs)
+      idsNew = which(grepl(rs,rownames(d)))
+      print(idsNew)
+      ids = c(ids,idsNew)
+    }
+    #print(ids)
+    d <- d[ids,]
+  }
+  
+  
+  
+
+  #plot(x = p$col, y = p$row, col=colpal[p$val],
+  #     xaxt = "n", yaxt = "n", #  xaxs = "i",
+  #     pch = 15, cex = 5, xlab="", ylab="")
+  
+  featureNames = unlist(lapply(strsplit(colnames(d),readout), function(x) {x[2]}))
+  #featureNames = unlist(lapply(strsplit(featureNames,"xx"), function(x) {paste0(x[1],x[3])}))
+  featureNames <-  gsub("_NA","",featureNames)
+  featureNames <-  gsub("NA","",featureNames)
+  #featureNames <-  gsub("Children","_Object",featureNames)
+  featureNames <-  gsub("Sum__AreaShape_Area","_Object__TotalArea",featureNames)
+  #featureNames <-  gsub("_Intensity","",featureNames)
+  featureNames <-  gsub("StdIntensity","IntensityVariation",featureNames)
+  featureNames <-  gsub("MeanIntensity_LocalVar","LocalTexture",featureNames)
+  featureNames <-  gsub("NormDistance__Nucleus","NormDistToNuclearPeriphery",featureNames)
+  
+  #featureNames <-  gsub("Mean_Cells_Mean_MaxGolgi_AreaShape_FormFactor","Compactness",featureNames)
+  #featureNames <-  gsub("Mean_Cells_Children_Golgi_Count","Fragmentation",featureNames)
+  #featureNames <-  gsub("Mean_Cells_Intensity_IntegratedIntensity_GolgiDotsMasked","Vesicularity",featureNames)
+  #featureNames <-  gsub("Mean_Cells_Intensity_IntegratedIntensity_GolgiLinesMasked","Tubularity",featureNames)  
+  #featureNames <-  gsub("Mean_Cells_Intensity_IntegratedIntensity_GolgiDiffuse","Diffuse",featureNames)  
+  
+  # general replacements
+  featureNames <-  gsub("Masked","",featureNames)
+  featureNames <-  gsub("Mean_Cells_","",featureNames)
+  
+  
+  
+  colnames(d) <- featureNames
+  d <- d[,order(colnames(d), decreasing = TRUE)]
+  
+  rownames(d) <-  gsub("8h","_08h",rownames(d))
+  rownames(d) <-  gsub("24h","_24h",rownames(d))
+  rownames(d) <-  gsub("Control","AAAA",rownames(d))
+  d <- d[order(rownames(d)),]
+  rownames(d) <-  gsub("AAAA","Control",rownames(d))
+  
+  #print(d)
+
+  p <- convertMatrixToVectorList(d)
+
+  #print(length(p$val))
+  # rescale values to 8-bit LUT
+  p$val = scaleForDisplay(p$val,LUT.min,LUT.max)
+  
+  #print(length(p$val))
+  colpal <- colorRampPalette(c("blue","white","red"))(256) 
+  #print(length(colpal))
+  #dev.new() 
+  
+  #print(p$val)
+  #print(length(colpal[p$val]))
+  
+  
+  if(rotate) {
+    par(mar=c(15,15,1,1), bg="grey") # bg="white"
+    x = p$row
+    y = p$col
+    axis1labels = rownames(d)   
+    axis2labels = colnames(d)
+    cex1 = 1
+    cex2 = 1
+    
+  } else {
+    par(mar=c(15,15,1,1), bg="grey") # bg="white"
+    x = p$col
+    y = p$row
+    axis1labels = colnames(d)
+    axis2labels = rownames(d)
+    cex2 = 1
+    cex1 = 1
+  }
+  
+  
+  plot(x = x, y = y,
+       xaxt = "n", yaxt = "n",
+       pch = 15, xlab="", ylab="", cex = 3, xlim=c(0,length(axis1labels)+1), col=colpal[p$val])
+  #print(length(axis1labels))
+  #print(length(axis2labels))
+  
+  #points(x = x, y = y, col=colpal[p$val],
+  #     pch = 15,  cex = 2.6)
+  
+  axis(1, at=1:length(axis1labels), labels=axis1labels, las=2, cex.axis = cex1)
+  axis(2, at=1:length(axis2labels), labels=axis2labels, las=1, cex.axis = cex2)
+ 
+  abline(v = seq(1:84), col="lightgray", lty = "dotted")
+  
+  # Now plot the x axis, but without labels
+#  axis(1, at=seq(1, 10, by=2), labels = FALSE) 
+  
+  # Now draw the textual axis labels
+  #text(seq(1, ncol(d), by = 1), par("usr")[3] - 0.0, 
+  #     labels = featureNames, 
+  #     srt = 45, pos = 1, xpd = TRUE) 
+  
+  }
+
+
+
+convertMatrixToVectorList <- function(m) {
+  
+  p = list()
+  i = 1
+  for (ir in seq(1,nrow(m))) {
+    for (ic in seq(1,ncol(m))) {
+      p$col[i] = ic
+      p$row[i] = ir
+      p$val[i] = m[ir,ic]
+      i=i+1
+    }
+  }
+  
+  return(p)
+}
+
+
+
 
 
 htmMakeAllHeatmaps <- function(htm, datatype = "images", measurement, path, markQC = T, colorLUT.min=0, colorLUT.max=1, colorLUT.autoscale=F, selectTreat1, selectTreat2, selectTreat3) {
@@ -445,7 +686,7 @@ htmHeatmap_MarkSelectedTreatment <- function(htm, selectedExp, selectedTreatment
       points(x, y, 
              pch = 22,
              lwd = 2.25,
-             cex = 2.0 * htm@settings@visualisation$heatmap_image_size_cex * max(c(htm@settings@visualisation$number_subpositions_x,htm@settings@visualisation$number_subpositions_y)),
+             cex = 1.1 * htm@settings@visualisation$heatmap_image_size_cex * max(c(htm@settings@visualisation$number_subpositions_x,htm@settings@visualisation$number_subpositions_y)),
              col = color) #22 = empty rectangle
     }
   
@@ -459,7 +700,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
                           .xlim=NA, .ylim=NA, datatype="images", colorizeTreatments=F,  
                           sorting="none", experimentSubset="None selected", newdev = T, 
                           action="plot", printMeanSD = T,  showMean = T, showMedian = T, save2file = F,
-                          scaleFromZero = F) {
+                          scaleFromZero = F, reference="None selected") {
   
   print("")
   print("")
@@ -479,16 +720,34 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     data <- htm@data
     
     if(experimentSubset[1] != "None selected") {
-      print(paste("..selecting experiments:",experimentSubset))
+      print(paste("  selecting experiments:",experimentSubset))
       data <- subset(data, data[[htm@settings@columns$experiment]] %in% experimentSubset)
     }
     if(treatmentSubset[1] != "None selected") {
-      print(paste("..selecting treatments:",treatmentSubset))
+      print(paste("  selecting treatments:",treatmentSubset))
       data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
     }
+    
     qc <- data$HTM_qcImages
-   
-    treatments <- data[[htm@settings@columns$treatment]]
+    if(!is.null(htm@settings@columns$treatment)) treatments <- data[[htm@settings@columns$treatment]]
+    
+  }
+
+  if(datatype=="objects") {
+    
+    data <- htm@objectdata
+    
+    if(experimentSubset[1] != "None selected") {
+      print(paste("  selecting experiments:",experimentSubset))
+      data <- subset(data, data[[htm@settings@columns$experiment]] %in% experimentSubset)
+    }
+    if(treatmentSubset[1] != "None selected") {
+      print(paste("  selecting treatments:",treatmentSubset))
+      data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
+    }
+    
+    qc <- NULL
+    if(!is.null(htm@settings@columns$treatment)) treatments <- data[[htm@settings@columns$treatment]]
     
   }
   
@@ -502,13 +761,13 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     qc <- data$wellQC
     treatments <- data$treatment
     
-    }
+  }
   
   
   if(!is.null(qc)) {
-    print("..qc column exists => computing statistics only for points that passed QC")
+    print("  qc column exists => computing statistics only for points that passed QC")
   } else {
-    print("..no qc column => evaluate all data")
+    print("  no qc column => evaluate all data")
     qc = rep(1, nrow(data))
   }
    
@@ -547,47 +806,93 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   lx = levels(factors); #print(lx)
   jp.y <- data[ids,cy] 
   qc <- qc[ids]
-  treatments <- treatments[ids]
-  #data <- data[ids,]
+  
+  # log2 transform if wished
+  if(htmGetListSetting(htm,"visualisation","jitterPlot_log2_TF")==T) {
+    jp.y <- log2(jp.y)
+    .ylab <- paste(.ylab,"[log2]")
+  }
   
   
   print(paste("  colorizeTreatments:",colorizeTreatments==T))
   if(colorizeTreatments == T) {
+    treatments <- treatments[ids]
     print("colorizing by treatment")
     .colors = factor(treatments, levels=unique(treatments)) 
   } else {
     .colors = rep("grey30", nrow(data))
   }  
   
-  
 
-  
-  
   # compute some statistics for printing and plotting
     
-    jp.y.qc <- ifelse(qc==1, jp.y, NA)
-    jp.x.qc <- ifelse(qc==1, jp.x, NA)
-  
-    if(printMeanSD) {
-      cat("\n\n\nLabel   Mean   SD\n")
-      jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
-      jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
-      for(i in 1:length(jp.yMean)) {
-        print(paste(names(jp.yMean)[i],jp.yMean[i],jp.ySD[i],sep="   "))     
-      }
-    }
+
+  jp.y.qc <- ifelse(qc==1, jp.y, NA)
+  jp.x.qc <- ifelse(qc==1, jp.x, NA)
+
+    
+  # compute stats for plotting
+  jp.xMean = tapply(jp.x.qc, factors, function(z) {mean(z,na.rm=T)})
+  jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
+  jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
+  jp.yMedian = tapply(jp.y.qc, factors, function(z) {median(z,na.rm=T)})
+  jp.yMAD = tapply(jp.y.qc, factors, function(z) {mad(z,na.rm=T)})
+  jp.ySEM = tapply(jp.y.qc, factors, function(z) {sem(z)})
+  jp.ySEMabove = tapply(jp.y.qc, factors, function(z) {sem_above(z)})
+  jp.ySEMbelow = tapply(jp.y.qc, factors, function(z) {sem_below(z)})
+  jp.nOK = tapply(jp.y.qc, factors, function(z) {sum(z/z, na.rm=T)})
+  jp.nAll = tapply(jp.y, factors, function(z) {length(z)})
+
+
+  # compute t-tests
+  if(reference != "None selected") {
+    print("")
+    print("### T-Test:")
+    
+    factors <- factor(data[ids,cx], levels=unique(data[ids,cx])); #print(factors)
+    idsRef = which(factors==reference)
+    
+    if(sum(idsRef)>0) {
+     # print(paste("Reference:",reference))
+      print("")
+      m.ctrl = mean(jp.y.qc[idsRef],na.rm=T)
+      sd.ctrl = sd(jp.y.qc[idsRef],na.rm=T)
+      median.ctrl = median(jp.y.qc[idsRef],na.rm=T)
+      mad.ctrl = mad(jp.y.qc[idsRef],na.rm=T)
       
-    # compute stats for plotting
-    jp.xMean = tapply(jp.x.qc, factors, function(z) {mean(z,na.rm=T)})
-    jp.yMean = tapply(jp.y.qc, factors, function(z) {mean(z,na.rm=T)})
-    jp.ySD = tapply(jp.y.qc, factors, function(z) {sd(z,na.rm=T)})
-    jp.yMedian = tapply(jp.y.qc, factors, function(z) {median(z,na.rm=T)})
-    jp.yMAD = tapply(jp.y.qc, factors, function(z) {mad(z,na.rm=T)})
-    jp.ySEM = tapply(jp.y.qc, factors, function(z) {sem(z)})
-    jp.ySEMabove = tapply(jp.y.qc, factors, function(z) {sem_above(z)})
-    jp.ySEMbelow = tapply(jp.y.qc, factors, function(z) {sem_below(z)})
-    jp.nOK = tapply(jp.y.qc, factors, function(z) {sum(z/z, na.rm=T)})
-    jp.nAll = tapply(jp.y, factors, function(z) {length(z)})
+      #print(jp.y.qc[idsRef])
+      
+      print(paste(reference," mean =",m.ctrl," sd =",sd.ctrl))
+      print("")
+      
+      for(factor in levels(factors)) {
+        #if(!factor==reference) {
+          idsTest = which(factors==factor)
+          tt <- t.test(x=jp.y.qc[idsRef],y=jp.y.qc[idsTest])
+          m.test = mean(jp.y.qc[idsTest],na.rm=T)
+          sd.test = sd(jp.y.qc[idsTest],na.rm=T)
+          #median.test = median(jp.y.qc[idsTest],na.rm=T)
+          #mad.test = mad(jp.y.qc[idsTest],na.rm=T)
+          #zFactor = round(1 - 3*(sd.ctrl+sd.test)/abs(m.ctrl-m.test),2)
+          #zScore = round(abs(m.test-m.ctrl)/sd.ctrl,2)
+          #robust_zScore = round(abs(median.test-median.ctrl)/mad.ctrl,2)
+          significance = ""
+          if(tt$p.value < 0.05) significance = "(*)"
+          if(tt$p.value < 0.01) significance = "(**)"
+          #print(paste(factor,"; Z-score = ",zScore,"; Robust Z-score = ",robust_zScore,"; Z-factor = ",zFactor,"; T-test = ",round(tt$p.value,4),significance))  
+          #print(paste(factor,"; T-test = ",round(tt$p.value,10),significance))  
+          #print(paste(factor," mean =",m.ctrl," sd =",sd.ctrl))
+          print(paste(factor,"  mean =",m.test,"  t-test vs.",reference,"=",tt$p.value,significance))  
+          #print(jp.y.qc[idsTest])
+          
+        #}
+      }
+    } else {
+      print(paste("no reference treatments found for:",reference))
+    } 
+  } else {
+    #print("no valid Reference selected.")
+  }
   
   
   
@@ -620,22 +925,23 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
       dev.new()
     }
      
-    cat(paste("\n\njitter-plotting",cy,"vs.",cx,"\n"))
+    #cat(paste("\n\njitter-plotting",cy,"vs.",cx,"\n"))
       
-    op <- par(mar=c(5.1, 4.1, 4.1, 10.1), xpd=TRUE) #par(mar = c(8,5,4,2) + 0.1) 
+    op <- par(mar=c(7.1, 4.1, 4.1, 2.1), xpd=TRUE) #par(mar = c(8,5,4,2) + 0.1) 
     
     dotsize = 0.75
     
+    
     if( is.na(.xlim) || is.na(.ylim) ) {
       if(htmGetListSetting(htm,"visualisation","jitterPlot_scaleFromZero_TF")==T) {
-        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, ylim = c(0, max(jp.y)), pch=pchQC, cex=dotsize, col = .colors)
+        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, ylim = c(0, max(jp.y)), pch=pchQC, cex=dotsize, col = .colors,  cex.lab = 1)
       } else {
-        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, pch=pchQC, cex=dotsize, col = .colors)        
+        plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, pch=pchQC, cex=dotsize, col = .colors,  cex.lab = 1)        
       }
     } else {  # zooming  
-      plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, col=.colors)
+      plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, col=.colors,  cex.lab =1)
     }
-    axis(1, at=1:length(lx), labels=lx, las=2,  cex.axis = 0.75)
+    axis(1, at=1:length(lx), labels=lx, las=2,  cex.axis = 1)
     
     plotTitle = ""
     if(experimentSubset[1] != "None selected") {
@@ -649,9 +955,11 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     } else {
       plotTitle = paste(plotTitle,"All treatments",sep="\n")
     }
-    title(plotTitle)
+    
+    title(plotTitle, cex.main = 0.8)
      
     if(colorizeTreatments == T) {
+      treatments <- treatments[ids]
       dx = -0.5
       legend("topright", inset=c(dx,0), legend = unique(treatments), col=1:length(treatments), pch=16, bty="n")
       #min(jp.x), max(jp.y), 
@@ -684,6 +992,10 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
       i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
       print(paste("y-axis value =",data[ids[i],cy]))
       htmShowImagesFromRow(htm,data[ids,],i)
+    } else if(datatype=="objects") {
+      i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
+      print(paste("y-axis value =",data[ids[i],cy]))
+      htmShowObjectsFromRow(htm, data[ids,], i)      
     } else if(datatype=="wells") {
       i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
       htmShowWellsFromRow(htm,data[ids,],i)
@@ -694,7 +1006,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   
   if(save2file) {
    dev.off()
-   }
+  }
   
     
 }
@@ -764,43 +1076,24 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   
   if(datatype=="objects") {
     
-    clink <- htm@settings@columns$objectimagelink
+     data <- htm@objectdata
     
-    # get all valid image ids for the experiment selection
-    if(experimentSubset[1]!="None selected") {
-      validIDs <- htm@data[[clink]][which(htm@data[[htm@settings@columns$experiment]] %in% experimentSubset)]
-    } else {
-      validIDs <- htm@data[[clink]]
+    if(experimentSubset[1] != "None selected") {
+      print(paste("  selecting experiments:",experimentSubset))
+      data <- subset(data, data[[htm@settings@columns$experiment]] %in% experimentSubset)
+    }
+    if(treatmentSubset[1] != "None selected") {
+      print(paste("  selecting treatments:",treatmentSubset))
+      data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
     }
     
-    # subset object rows with valid image ids
-    data <- htm@objectdata
-    print(nrow(data))
-    data <- subset(data, data[[clink]] %in% validIDs)
-    print(nrow(data))
-    
-    # get all valid image ids for the treatment selection
-    if(treatmentSubset[1]!="None selected") {
-      validIDs <- htm@data[[clink]][which(htm@data[[htm@settings@columns$treatment]] %in% treatmentSubset)]
-    } else {
-      validIDs <- htm@data[[clink]]
-    } 
-    data <- subset(data, data[[clink]] %in% validIDs)
-    #print(nrow(data))
-    
-    finalIDs <- data[[clink]]
-    if(!is.null(htm@data$HTM_qcImages)) {
-      qc <- sapply(finalIDs,function(x) htm@data$HTM_qcImages[which(htm@data[[clink]]==x)])
-    } else {
-      qc <- NULL
-    }
-    treatments <- sapply(finalIDs, function(x) htm@data[[htm@settings@columns$treatment]][which(htm@data[[clink]]==x)]) 
+    qc <- data$HTM_qcObjects
+    treatments <- data[[htm@settings@columns$treatment]]
+  
     
   }
   
-  #print(treatments)
-  
-  if(datatype=="wells") {
+  if(datatype=="positions") {
   
     data <- htm@wellSummary
     
@@ -811,6 +1104,18 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
     treatments <- data$treatment
     experiments <- data$experiment
     
+  }
+  
+  if(datatype=="MDS") {
+    
+    data <- htm@other$MDS
+    
+    #if(experimentSubset!="None selected")  data <- subset(data, data$experiment==experiments)
+    #if(treatmentSubset!="None selected") data <- subset(data, data$treatment %in% treatmentSubset)
+    #edit(data)
+    qc <- rep(1,nrow(htm@other$MDS))
+    treatments <- data$treatment
+    experiments <- c("not applicable")
   }
   
   
@@ -854,20 +1159,36 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   
   
   if(action=="plot") {
+    
     if(newdev){
       dev.new()
     }
+    
     dotsize = 0.75
-    op <- par(mar = c(8,5,4,2) + 0.1) 
+    op <- par(mar = c(10,10,4,2) + 0.1) 
+    
     if(htmGetListSetting(htm,"visualisation","scatterPlot_scaleFromZero_TF")==T) {
       .ylim = c(0, max(vy))
       .xlim = c(0, max(vx))
     }
-    if( is.na(.xlim) || is.na(.ylim) ) {
-      plot(vx, vy, xlab=cx, ylab=cy, pch=pchQC, cex=dotsize, main="", col=.colors)
-    } else {    
-      plot(vx, vy, xlab=cx, ylab=cy, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, main="", col=.colors)
+    
+    if(datatype=="MDS") {
+      type = "n"
+    } else {
+      type = "p"
     }
+    
+    # actual plotting
+    if( is.na(.xlim) || is.na(.ylim) ) {
+      plot(vx, vy, xlab=cx, ylab=cy, type = type, pch=pchQC, cex=dotsize, main="", col=.colors, cex.lab=1.2)
+    } else {    
+      plot(vx, vy, xlab=cx, ylab=cy, xlim=.xlim, ylim=.ylim, type = type, pch=pchQC, cex=dotsize, main="", col=.colors, cex.lab=1.2)
+    }
+    
+    if(datatype=="MDS") {
+      text(vx, vy, labels = data$treatment, cex=0.5)
+    } 
+    
     par(op)
   }
 
@@ -884,7 +1205,7 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
   } else {
     plotTitle = paste(plotTitle,"All treatments",sep="\n")
   }
-  title(plotTitle, cex.main = 1)
+  title(plotTitle, cex.main = 1.2)
   
   
   linefit = FALSE
@@ -911,10 +1232,17 @@ htmScatterPlot <- function(htm, cx, cy, .xlim=NA, .ylim=NA, datatype="images", c
       i <- identify(vx, vy, n = 1, plot = FALSE)
       print(paste("  x-axis value =",data[i,cx]))
       print(paste("  y-axis value =",data[i,cy]))
-      htmShowImagesFromRow(htm,data,i)
+      htmShowImagesFromRow(htm, data, i)
+    } else if(datatype=="objects") {
+      i <- identify(vx, vy, n = 1, plot = FALSE)
+      htmShowObjectsFromRow(htm, data, i)
     } else if(datatype=="wells") {
       i <- identify(vx, vy, n = 1, plot = FALSE)
       htmShowWellsFromRow(htm,data,i)
+    } else if(datatype=="MDS") {
+      i <- identify(vx, vy, n = 1, plot = FALSE)
+      print(paste("You clicked on",data$treatment[i]))
+      htmShowTreatmentsFromRow(htm,data,i)
     } else {
       print("WARNING: Click and View is not supported for this datatype.")
     } 

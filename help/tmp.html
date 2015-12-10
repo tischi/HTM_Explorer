@@ -1,10 +1,24 @@
-<h1>Statistical Analysis</h1>
+<h2>Configuration of assay columns</h2>
 
-<h2>Batch effects</h2>
+<h3>Treatment (compulsory)</h3>
 
-<p>Biological data typically consist of measurement &ldquo;batches&rdquo;.</p>
+<p>The column that you chose here should contain text that signifies the treatment that the image in the respective row was subjected to. </p>
 
-<p>Typically, a batch is defined by data that are &ldquo;comparable&rdquo;; this could be due to</p>
+<ul>
+<li>Based on this column you will be able to chose a treatment subset in most of the plotting tools.</li>
+<li>The statistics analysis  will use this column to sort your data according to the treatment.</li>
+</ul>
+
+<h3>Batch (compulsory)</h3>
+
+<p>The column that you chose here should contain text that determines which images are from the same measurement &ldquo;batch&rdquo;.</p>
+
+<ul>
+<li>All images from the same batch will be shown together in the &ldquo;Batch heatmap&rdquo; plotting tool.</li>
+<li>In the statistical analysis there are batch-correction steps that will normalise the measurement values of one batch against all the control measurements from the same batch (see help on Statistical Analysis for more details).</li>
+</ul>
+
+<p>Typically, one measurement batch is defined by data that are &ldquo;comparable&rdquo;; this could be due to</p>
 
 <ul>
 <li>cells from same passage number are used</li>
@@ -14,133 +28,22 @@
 
 <p>In high-throughput screening such a measurement batch typically is considered to be one multi-well plate.</p>
 
-<p>As above conditions have a high probability to change between different batches one should (has to) normalize data to control measurements from the same batch.</p>
+<h3>Position (Well) coordinate (needed for Heatmap plotting and Statistics)</h3>
 
-<p>Statistically this is referred to as &ldquo;handling of batch effects&rdquo;.</p>
+<p>The column containing the position coordinate must contain plain numbers that specify where (spatially) in each batch the measurements were taken (in the Heatmap plotting tool you specify a grid according to which the positions will be displayed.)
+All images from the same position must have been subjected to the same treatment (it can be that there are multiple positions subjected to the same treatment). In the statistics tool there are &ldquo;position-based&rdquo; statistics computed, where in a first step all images from one position are averaged and, in a second step, the significance testing is then done by comparing different positions (from multiple batches) (see also help on statistical analysis).</p>
 
-<p>The HTM Explorer gives you several outputs that handle batch effects in different ways (see below). </p>
+<p><strong>Example &ldquo;Plate&rdquo;</strong>: In multi-well plate experiment one position would be one well; it is often the case the a number of wells contain the same (control) treatment.</p>
 
-<h2>Multiplicative or additive effect of treatments</h2>
+<p><strong>Example &ldquo;Coverslips&rdquo;</strong>: In an experiment where you compare the look of cells on different coverslips one position would be one coverslip.</p>
 
-<p>Before you start the actual analysis of your treatment effects you have to decide whether your treatment effects are multiplicative or additive to your readout.</p>
+<h3>Sub-position (image) coordinate (needed for Batch heatmap)</h3>
 
-<h3>Example:</h3>
+<p>The column containing the sub-position coordinate must contain a number that specifies where (spatially) each image is located within its position. In the Batch Heatmap plotting tool you specify a grid according to which the positions and subpositions will be displayed.</p>
 
-<p>Let&#39;s neglect batch effects for now and assume you have only one batch of measurements. Let&#39;s also not think about statistical significance for now (otherwise we would need too many numbers). Say your readout is the number of a certain type of vesicles in the cells. 
-Your control measurement gave you: </p>
+<p><strong>Example &ldquo;Plate&rdquo;</strong>: The sub-position would be the positions of the images in a well.</p>
 
-<pre><code>c = 20
-</code></pre>
-
-<p>and you have two independent measurements for your treatment, namely</p>
-
-<pre><code>m1 = 10
-m2 = 40
-</code></pre>
-
-<h4>Additive interpretation:</h4>
-
-<p>If you adopt an &ldquo;additive interpretation&rdquo; of your data you would say: In measurement one the number of vesicles was decreased by 10 (10-20=-10) and in measurement two  the number of vesicles was increased by 20  (40-20=+20).</p>
-
-<p>Thus, on average the treatment led to an increase in the number of vesicles, because the mean difference of control samples and treated samples is: mean(-10, +20) = +5. In other words, the expected number of vesicles in treated samples is c + 5 = 25.</p>
-
-<p>Mathematically this looks like this:</p>
-
-<pre><code>c = 20; m1 = 10; m2 = 40    
-d1 = m1 - c = -10
-d2 = m2 - c = +20
-mean(d1,d2) = +5 
-=&gt; the treatment increases the readout
-</code></pre>
-
-<h4>Multiplicative interpretation:</h4>
-
-<p>If you adopt an &ldquo;multiplicative interpretation&rdquo; of your data you would say: 
-In measurement one the number of vesicles decreased by a factor of 2 (10/20=&frac12;) and in measurement two the number of vesicles increased by factor of 2 from (40/20=2). As you got the exact opposite effect in your two measurements you would say that on average there was no effect of the treatment.</p>
-
-<p>In order to get this result mathematically one needs to take the logarithm (e.g. the log2) of the data before computing the differences:</p>
-
-<pre><code>c = 20; m1 = 10; m2 = 40    
-log2(c) = log2(20) = 4.321928
-log2(m1) = log2(10) = 3.321928
-log2(m2) = log2(40) = 5.321928
-d1 = log(m1) - log(c) = 3.321928 - 4.321928 = -1
-d2 = log(m2) - log(c) = 5.321928 - 4.321928 = +1
-mean(d1,d2) = 0 
-=&gt; no effect of the treatment
-</code></pre>
-
-<p>One can also compute a &ldquo;factor change&rdquo; from the final result by taking it to the power of 2:</p>
-
-<pre><code>2^(mean(d1,d2)) = 2^(0) = 1
-</code></pre>
-
-<p>In words: on average the treatment changes the number of vesicles by a factor of 1, i.e. there is no change.</p>
-
-<h5>Note:</h5>
-
-<p>Normalizing the data by dividing by the mean of the controls does <strong>not</strong> give you this answer:</p>
-
-<pre><code>c = 20; m1 = 10; m2 = 40    
-f1 = m1/c = 10/20 = 0.5
-f2 = m1/c = 40/20 = 2
-mean(f1,f2) = 1.25 
-=&gt; the treatment increases the readout
-</code></pre>
-
-<p>In fact if you compute the expected number of vesicles in treated sample you get</p>
-
-<pre><code>1.25 * c = 1.25 * 20 = 25 
-</code></pre>
-
-<p>This is the same answer as in the additive interpretation!</p>
-
-<h2><code>Median__z_score</code> (position based score)</h2>
-
-<p>For each batch (plate), the data of all images within one position are averaged (see above) such that we have one number per position. 
-Then a z-score is computed for each position as Z = (value - mean(ctrls)) / sd(ctrls)
-Where the mean and sd are computed across all positions that contain the selected control measurements.</p>
-
-<p>To take into account the fact that you measured multiple batches the median z-score of all the batches is computed and given in the treatmentSummary table. The logic of taking the median is: &ldquo;at least in half of the batches (replicates) there should have been a significant effect.&rdquo;; significant typically being Z&gt;2 (increase) or Z&lt;-2 (decrease).</p>
-
-<p>Issues:</p>
-
-<ul>
-<li>the problem with this score is that the estimation of sd(ctrls) is very noisy if there are not enough control measurements. A wrong estimation of sd(ctrls) can readily render all of your measurements in the same batch as hits or non-hits. </li>
-<li>does not give you a statistical significance; for instance the value does not reflect how often you repeated your measurement</li>
-</ul>
-
-<h2><code>Median__robust_z_score</code> (position based score)</h2>
-
-<p>Same as Median__z_score, but for each batch (plate) a z-score is computed as Z =  (treated - median(ctrls)) / mad(ctrls), where mad is the so called median average deviation (a median based analog to the standard deviation).</p>
-
-<p>This score can make sense if you want to remove outliers in your controls, e.g. you could take the whole plate (all treatments) as controls if you expect only a limited number of hits (reference: Butros and Huber).</p>
-
-<p>Issues:</p>
-
-<ul>
-<li>same as <code>Median__z_score</code></li>
-</ul>
-
-<h2><code>t_test__positions</code> (position based score)</h2>
-
-<p>In a first step the batch effect is dealt with by subtracting the mean of the control positions within each batch. 
-Afterwards, for one specific treatment all batches are identified that contained this treatment and all treatment and control measurements from these batches are pooled; a t-test is performed of the treated positions against the control positions.
-Note: the t-test will compute a common variance of the batch-corrected controls across all batches that contained the treatment under consideration. This assumes that the variance of the controls is similar from batch to batch. The HTM Explorer will provide you with a graph that allows you to visually check this assummption.</p>
-
-<p>Issues:</p>
-
-<ul>
-<li>assumes similar (within factor of 2-3) variance of controls across batches.</li>
-</ul>
-
-<h2><code>t_test__images</code> (images based score)</h2>
-
-<p>As <code>t_test__positions</code> but the images (sub-positions) are used for the computations.</p>
-
-<p>Notes:</p>
-
-<ul>
-<li>For multi-well data we often observe that - for the same treatment - the images tend to give quite similar results within one well while from well to well there can be strong variations; this indicates that the variation comes from the wells (&ldquo;positions&rdquo;) and one should not pool all the images from different positions together (as it is done in this image based score), but rather use the positions based score..
-(think more about this; make an example)</li>
-</ul>
+<p><strong>Example &ldquo;Coverslips&rdquo;</strong>: You measured 10 coverslips subjected to different treatments and acquired 5x5 images on each coverslip.
+The position coordinate would go from 1 to 10, specifying on which coverslip the image was taken.
+The sub-position coordinate would go from 1 to 25, specifying on which position on the coverslip the image was taken.
+In the Heatmap plotting tool you could specify for instance a 2x5 grid for the positions and should specify a 5x5 grid for the subpositions.</p>

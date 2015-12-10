@@ -4,7 +4,7 @@
 ### GUI helper functions
 ###
 
-gui_AddRemoveVectorSetting <- function(setting,name,choices,container){
+gui_AddRemoveVectorSetting <- function(setting,name,choices,container,showSelected=T){
   
   .setting = setting
   
@@ -14,41 +14,43 @@ gui_AddRemoveVectorSetting <- function(setting,name,choices,container){
   
   gf <- gframe(name, horizontal=F, container=gg, expand=TRUE)
   
-  #glabel("   ", container=gf)
-  #gftext <- gframe("Current Selection", horizontal=F, container=gg, expand=TRUE)
-  #gf2 <- gframe("  Current selection:  ",container=gf)
-  .selectiontext <- glabel("", bg="#ffffff", container=gf)
-  htm <- get("htm", envir = globalenv())
-  svalue(.selectiontext) <- paste(htmGetVectorSettings(.setting),collapse="\n")
-  #font(.selectiontext) <- c("color"="black", "weight"="bold")
-  #glabel("   ", container=gf)
+
+  if(showSelected) {
+    #glabel("   ", container=gf)
+    #gftext <- gframe("Current Selection", horizontal=F, container=gg, expand=TRUE)
+    #gf2 <- gframe("  Current selection:  ",container=gf)
+    .selectiontext <- glabel("", bg="#ffffff", container=gf)
+    htm <- get("htm", envir = globalenv())
+    svalue(.selectiontext) <- paste(htmGetVectorSettings(.setting),collapse="\n")
+    #font(.selectiontext) <- c("color"="black", "weight"="bold")
+    #glabel("   ", container=gf)
+  }
   
   tmp <- ggroup(horizontal = TRUE, container=gf)
-  obj <- gbutton("Add", container = tmp, handler = function(h,...) {
+  obj <- gbutton("Available items (click to add)", container = tmp, handler = function(h,...) {
     htmAddVectorSetting(.setting,svalue(.choices))
     # update
     .selection[] <<- htmGetVectorSettings(.setting)  
     svalue(.selection) <<- .selection[length(.selection)]
-    svalue(.selectiontext) <<- paste(htmGetVectorSettings(.setting),collapse="\n")
-    #print(htmGetVectorSettings(.setting))
+    if(showSelected) svalue(.selectiontext) <<- paste(htmGetVectorSettings(.setting),collapse="\n")
   })
   glabel("   ", container=tmp)
-  .choices <- gcombobox(choices, container=tmp) 
+  .choices <- gcombobox(choices, width=500, expand=TRUE, container=tmp) 
   
   
   tmp <- ggroup(horizontal = TRUE, container=gf)
-  obj <- gbutton("Remove", container = tmp, handler = function(h,...) {
+  obj <- gbutton("Current selection (click to remove)", container = tmp, handler = function(h,...) {
     htm <- get("htm", envir = globalenv())
     htm <- htmRemoveVectorSetting(.setting,which(htmGetVectorSettings(.setting)==svalue(.selection)))
     # update
     .selection[] <<- htmGetVectorSettings(.setting)  
     svalue(.selection) <<- .selection[length(.selection)] 
-    svalue(.selectiontext) <<- paste(htmGetVectorSettings(.setting),collapse="\n")   
+    if(showSelected) svalue(.selectiontext) <<- paste(htmGetVectorSettings(.setting),collapse="\n")   
     assign("htm", htm, envir = globalenv())
   })
   glabel("   ", container=tmp)
   htm <- get("htm", envir = globalenv())
-  .selection <- gcombobox(htmGetVectorSettings(.setting), expand=TRUE, container=tmp)
+  .selection <- gcombobox(htmGetVectorSettings(.setting), width=500, expand=TRUE, container=tmp)
   
   return(.choices)
   
@@ -63,7 +65,7 @@ gui_ListSettingDropdown <- function(text, setting, key, choices=c("None selected
   selected <- htmGetListSetting(htm, setting, key, gui=T)
   
   if(selected == "None selected") {
-    htmSetListSetting(htm, setting, key, default,gui=T)
+    htmSetListSetting(htm, setting, key, default, gui=T)
     selected = default
     print(paste(setting,key,"did not exist yet; set to",default))
   }
@@ -194,12 +196,22 @@ guiHandler_Heatmap <- function(h, ...) {
   
   tmp <- ggroup(horizontal = TRUE, container=gp)
   glabel("Data set:   ",cont=tmp)
-  choices <- c("images","positions")
-  guiSelectedData <<- gcombobox(choices, container=tmp, handler = function(h,...){
+  choices <- c("images","objects","positions")
+  guiSelectedData <<- gcombobox(choices, container=tmp, selected=htmGetListSetting(htm,"visualisation","heatmap_datatype",gui=T), handler = function(h,...){
+    htmSetListSetting(htm, "visualisation","heatmap_datatype",svalue(h$obj),gui=T)
+    
     if(svalue(h$obj)=="images") guiSelectedMeasurement[] <<- colnames(htm@data)
     if(svalue(h$obj)=="positions") guiSelectedMeasurement[] <<- colnames(htm@wellSummary)
+    if(svalue(h$obj)=="objects") guiSelectedMeasurement[] <<- colnames(htm@objectdata)
   })
   
+  
+  datatype = htmGetListSetting(htm,"visualisation","heatmap_datatype",gui=T)
+  print(paste("datatype",datatype))
+  
+  if(datatype=="images") columns <- sort(c("None selected",colnames(htm@data)))      
+  if(datatype=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
+  if(datatype=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
   
   #tmp <- ggroup(horizontal = TRUE, container=gp)
   #glabel("Layout:   ",cont=tmp)
@@ -260,7 +272,12 @@ guiHandler_Heatmap <- function(h, ...) {
       #print(paste("Setting LUT to Min&Max of",svalue(guiSelectedMeasurement),"in per_well data"))
       dat <- subset(htm@wellSummary,htm@wellSummary$experiment==svalue(guiPlateSubset),svalue(guiSelectedMeasurement))
     }
- 
+    
+    if(svalue(guiSelectedData)=="objects") {
+      #print(paste("Setting LUT to Min&Max of",svalue(guiSelectedMeasurement),"in per_well data"))
+      dat <- subset(htm@objectdata,htm@objectdata[[htm@settings@columns$experiment]]==svalue(guiPlateSubset),svalue(guiSelectedMeasurement))
+    }
+        
     #print(paste("Lower = ", min(dat, na.rm=T) ))
     #print(paste("Maximum = ", max(dat, na.rm=T) ))
     svalue(guiLUTmin) <<- quantile(dat, 0.03, na.rm=T) #min(dat, na.rm=T) 
@@ -276,6 +293,9 @@ guiHandler_Heatmap <- function(h, ...) {
     # todo: make more concise
     if(svalue(guiSelectedData)=="images") {
       dat <- htm@data[[svalue(guiSelectedMeasurement)]]
+    }
+    if(svalue(guiSelectedData)=="objects") {
+      dat <- htm@objectdata[[svalue(guiSelectedMeasurement)]]
     }
     if(svalue(guiSelectedData)=="positions") {
       dat <- htm@wellSummary[[svalue(guiSelectedMeasurement)]]
@@ -583,38 +603,66 @@ guiHandler_JitterPlot_Help <- function(h,...) {
   
 } 
 
-guiHandler_JitterPlotImages <- function(h,...){
-  gui_JitterPlot(datatype="images") 
-}
 
-guiHandler_JitterPlotWells <- function(h,...){
-  gui_JitterPlot(datatype="positions") 
-}
 
-gui_JitterPlot <- function(datatype="images"){
+guiHandler_JitterPlot <- function(h,...){
 
-  if(is.null(htm@settings@columns$experiment)) {
-    gmessage("You need to specify the experiment and treatment columns [Main..Configure..Assay columns]")
-    return(NULL)
-  }
+  print("Jitter plot")
   
+  #if(is.null(htm@settings@columns$experiment)) {
+  #  gmessage("You need to specify the experiment and treatment columns [Main..Configure..Assay columns]")
+  #  return(NULL)
+  #}
   
   htm <- get("htm", envir = globalenv())
   
-  w <- gwindow(paste("Jitter Plot:",datatype), visible = F)
+  w <- gwindow(paste("Jitter Plot"), visible = F)
   
-  gp <- ggroup(horizontal = FALSE, container=w)
-  
-  if(datatype=="images") {
-    columns <- sort(colnames(htm@data))
-    experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
-    treatments <- sort(unique(htm@data[[htm@settings@columns$treatment]]))
-  } else if(datatype=="positions") {
-    columns <- sort(colnames(htm@wellSummary))
-    experiments <- sort(unique(htm@wellSummary$experiment))
-    treatments <- sort(unique(htm@wellSummary$treatment))
+  if (htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)=="None selected")  {
+    htmSetListSetting(htm,"visualisation","jitterPlot_datatype","images",gui=T)  
   }
   
+  tmp <- ggroup(horizontal = TRUE, container=w)
+  glabel("Data set:   ",cont=tmp)
+  choices <- c("images","objects","positions")
+  guiSelectedData <- gcombobox(choices, container=tmp, selected=htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T), handler = function(h,...){
+    
+    htmSetListSetting(htm, "visualisation","jitterPlot_datatype",svalue(h$obj),gui=T)
+  
+    if(svalue(h$obj)=="images") columns <- sort(c("None selected",colnames(htm@data)))      
+    if(svalue(h$obj)=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
+    if(svalue(h$obj)=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
+    
+    cx[] <<- columns
+    cy[] <<- columns
+    
+  })
+  
+  
+  datatype = htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)
+  print(paste("datatype",datatype))
+
+  if(datatype=="images") columns <- sort(c("None selected",colnames(htm@data)))      
+  if(datatype=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
+  if(datatype=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
+  
+  experiments <- NULL
+  treatments <- NULL
+  if(!is.null(htm@settings@columns$experiment)) experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
+  if(!is.null(htm@settings@columns$treatment)) treatments <- sort(unique(htm@data[[htm@settings@columns$treatment]]))
+  
+  #} else if(datatype=="objects") {
+  #  columns <- sort(colnames(htm@objectdata))
+  #  experiments <- sort(unique(htm@objectdata[[htm@settings@columns$experiment]]))
+  #  treatments <- sort(unique(htm@objectdata[[htm@settings@columns$treatment]]))    
+  #} else if(datatype=="positions") {
+  #  columns <- sort(colnames(htm@wellSummary))
+  #  experiments <- sort(unique(htm@wellSummary$experiment))
+  #  treatments <- sort(unique(htm@wellSummary$treatment))
+  #}
+  
+  
+  gp <- ggroup(horizontal = T, container=w)
   glabel("Label axis:  ", container=gp)
   cx <- gcombobox(c("None selected", columns), 
                   selected = htmGetListSetting(htm,"visualisation","jitterPlotX",gui=T), 
@@ -624,6 +672,7 @@ gui_JitterPlot <- function(datatype="images"){
                   })
 
   
+  gp <- ggroup(horizontal = T, container=w)
   glabel("Value axis:  ", container=gp)
   cy <- gcombobox(c("None selected", columns), 
                   selected = htmGetListSetting(htm,"visualisation","jitterPlotY",gui=T), 
@@ -634,9 +683,12 @@ gui_JitterPlot <- function(datatype="images"){
   
   
   
+  #gp <- ggroup(horizontal = T, container=w)
+  
+  glabel(" ", container=w)
+  
   gp <- ggroup(horizontal = T, container=w)
   glabel("Experiment selection:  ", container=gp)
-  
   guiExpSubset <- gcombobox(c("None selected", experiments), 
                   selected = htmGetListSetting(htm,"visualisation","jitterPlotExpSubset",gui=T), 
                   container = gp, 
@@ -644,14 +696,12 @@ gui_JitterPlot <- function(datatype="images"){
                     htmSetListSetting(htm,"visualisation","jitterPlotExpSubset",svalue(h$obj),gui=T)
                   })
    
-  
   glabel(" ", container=w)
-  
   gui_AddRemoveVectorSetting(setting="visualisation$treatmentSelectionForPlotting",
                              name=" Treatment selection: ",
-                             choices = c("None selected", treatments ),
-                             container = w)  
-  
+                             choices = c("None selected",treatments),
+                             container = w,
+                             showSelected=F)  
   
   
   gp <- ggroup(horizontal = T, container=w)
@@ -659,30 +709,36 @@ gui_JitterPlot <- function(datatype="images"){
   guiSorting <- gcombobox(c("none","alphabetic","median value"), container=gp)
   
   gp <- ggroup(horizontal = T, container=w)
-  obj <- gbutton("Plot it!", editable=FALSE, container = gp, handler = function(h,...){
+  glabel("Compute t-test against:  ", container=gp)
+  guiReference <- gcombobox(c("None selected",treatments), container=gp)
+  
+  glabel(" ", container=w)
+  gp <- ggroup(horizontal = T, container=w)
+  obj <- gbutton("Plot", editable=FALSE, container = gp, handler = function(h,...){
     htm <- get("htm", envir = globalenv())
-    print(paste("treatmentSelectionForPlotting",htmGetVectorSettings("visualisation$treatmentSelectionForPlotting")))
+    # print(paste("treatmentSelectionForPlotting",htmGetVectorSettings("visualisation$treatmentSelectionForPlotting")))
     htmJitterplot(htm = htm,
                   cx = svalue(cx),
                   cy = svalue(cy),
                   .ylab = svalue(cy),
-                  datatype = datatype,
+                  datatype = svalue(guiSelectedData),
                   experimentSubset = svalue(guiExpSubset),
                   treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting"),
                   sorting = svalue(guiSorting),
                   colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
                   showMedian = htmGetListSetting(htm,"visualisation","jitterPlot_showMedianAndMAD_TF",gui=T),
-                  showMean = htmGetListSetting(htm,"visualisation","jitterPlot_showMeanAndSD_TF",gui=T)
+                  showMean = htmGetListSetting(htm,"visualisation","jitterPlot_showMeanAndSD_TF",gui=T),
+                  reference = svalue(guiReference)
                   )
   })
  
   
-  obj <- gbutton("Zoom in", editable=FALSE, container = gp, handler = function(h, ...){
+  obj <- gbutton("Zoom", editable=FALSE, container = gp, handler = function(h, ...){
       loc = locator(n=2)
       htm <- get("htm", envir = globalenv())
       htmJitterplot(htm, svalue(cx), svalue(cy), .xlim=sort(loc$x),.ylim=sort(loc$y),.ylab=svalue(cy),
                     experimentSubset = svalue(guiExpSubset), 
-                    datatype = datatype,
+                    datatype = svalue(guiSelectedData),
                     colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
                     sorting = svalue(guiSorting),
                     newdev = F,
@@ -692,25 +748,26 @@ gui_JitterPlot <- function(datatype="images"){
                     )
   })
   
-  if(datatype=="images") {
+  #if(datatype=="images" | datatype=="objects") {
     
-    gbutton("Click & View", container = gp, handler = function(h, ...){
-      if(dev.cur()==1) {
-        print("No plot open.")
-      } else {
-        htm <- get("htm", envir = globalenv())
-        htmJitterplot(htm,
-                      svalue(cx),svalue(cy),.xlim=sort(loc$x),.ylim=sort(loc$y),
-                      experimentSubset = svalue(guiExpSubset), 
-                      colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
-                      sorting = svalue(guiSorting),
-                      datatype = datatype,
-                      newdev = F, action="click",
-                      treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting")
-        )
-      }
-    })
-  }
+  gbutton("Click & View", container = gp, handler = function(h, ...){
+    if(dev.cur()==1) {
+      print("No plot open.")
+    } else {
+      htm <- get("htm", envir = globalenv())
+      htmJitterplot(htm,
+                    svalue(cx),svalue(cy),.xlim=sort(loc$x),.ylim=sort(loc$y),
+                    experimentSubset = svalue(guiExpSubset), 
+                    colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
+                    sorting = svalue(guiSorting),
+                    datatype = svalue(guiSelectedData),
+                    newdev = F, action="click",
+                    treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting")
+      )
+    }
+  })
+
+  #}
   
   obj <- gbutton("Help", editable=FALSE, container = gp, handler = guiHandler_JitterPlot_Help)
   
@@ -720,6 +777,8 @@ gui_JitterPlot <- function(datatype="images"){
   visible(w) <- T
                    
   #obj <- gbutton("Click and view image", editable=TRUE, container = gp, handler = handler_showImageJitterPlot )
+  
+  
   
 }
 
@@ -763,8 +822,14 @@ guiHandler_JitterPlot_Options <- function(h,...) {
             container = w, 
             handler = function(h,...){
               htmSetListSetting(htm, "visualisation","plotting_showQCfailData_TF",svalue(h$obj),gui=T)
-            })
-  
+            })    
+
+  gcheckbox("Log2 transform all data points", 
+            checked = htmGetListSetting(htm,"visualisation","jitterPlot_log2_TF",gui=T), 
+            container = w, 
+            handler = function(h,...){
+              htmSetListSetting(htm, "visualisation","jitterPlot_log2_TF",svalue(h$obj),gui=T)
+            })    
   
   visible(w) <- T
 }
@@ -781,29 +846,43 @@ guiHandler_ScatterPlot <- function(h,...){
   
   w <- gwindow("Scatter Plot", visible = F)
   print("Scatter Plot") 
-  tmp <- ggroup(horizontal = TRUE, container=w)
   
+  
+  if (htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)=="None selected")  {
+    htmSetListSetting(htm,"visualisation","jitterPlot_datatype","images",gui=T)  
+  }
+  
+  tmp <- ggroup(horizontal = TRUE, container=w)
   glabel("Data set:   ",cont=tmp)
   choices <- c("images","objects","positions")
-  guiSelectedData <- gcombobox(choices, container=tmp, handler = function(h,...){
-    if(svalue(h$obj)=="images") {
-      cx[] <<- colnames(htm@data)
-      cy[] <<- colnames(htm@data)
-    }
-    if(svalue(h$obj)=="objects") {
-      cx[] <<- colnames(htm@objectdata)
-      cy[] <<- colnames(htm@objectdata)
-    }
-    if(svalue(h$obj)=="positions") {
-      cx[] <<- colnames(htm@wellSummary)
-      cy[] <<- colnames(htm@wellSummary)
-    }
+  guiSelectedData <- gcombobox(choices, container=tmp, selected=htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T), handler = function(h,...){
+    
+    htmSetListSetting(htm, "visualisation","jitterPlot_datatype",svalue(h$obj),gui=T)
+    
+    if(svalue(h$obj)=="images") columns <- sort(c("None selected",colnames(htm@data)))      
+    if(svalue(h$obj)=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
+    if(svalue(h$obj)=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
+    
+    cx[] <<- columns
+    cy[] <<- columns
+    
   })
- 
+  
+  
+  datatype = htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)
+  print(paste("datatype",datatype))
+  
+  if(datatype=="images") columns <- sort(c("None selected",colnames(htm@data)))      
+  if(datatype=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
+  if(datatype=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
+  
+  experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
+  treatments <- sort(unique(htm@data[[htm@settings@columns$treatment]]))
+  
 
   gp <- ggroup(horizontal = T, container=w)
   glabel("x axis:", container=gp)
-  cx <- gcombobox(c("None selected",colnames(htm@data)), 
+  cx <- gcombobox(c("None selected",columns), 
                   selected = htmGetListSetting(htm,"visualisation","scatterPlotX",gui=T), container=gp, 
                   handler = function(h,...){
                     htmSetListSetting(htm, "visualisation","scatterPlotX",svalue(h$obj),gui=T)
@@ -811,7 +890,7 @@ guiHandler_ScatterPlot <- function(h,...){
    
   gp <- ggroup(horizontal = T, container=w)
   glabel("y axis:", container=gp)
-  cy <- gcombobox(c("None selected",colnames(htm@data)), 
+  cy <- gcombobox(c("None selected",columns), 
                   selected = htmGetListSetting(htm,"visualisation","scatterPlotY",gui=T), container=gp, 
                   handler = function(h,...){
                     htmSetListSetting(htm,"visualisation","scatterPlotY",svalue(h$obj),gui=T)
@@ -820,12 +899,17 @@ guiHandler_ScatterPlot <- function(h,...){
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Experiment selection:  ", container=gp)
-  guiExpSubset <- gcombobox(c("None selected", unique(htm@data[[htm@settings@columns$experiment]])), container=gp)
+  guiExpSubset <- gcombobox(c("None selected", experiments), 
+                            selected = htmGetListSetting(htm,"visualisation","scatterPlotExpSubset",gui=T), 
+                            container = gp, 
+                            handler = function(h,...){
+                              htmSetListSetting(htm,"visualisation","scatterPlotExpSubset",svalue(h$obj),gui=T)
+                            })
   
   glabel(" ", container=w)
   gui_AddRemoveVectorSetting(setting="visualisation$treatmentSelectionForPlotting",
                              name=" Treatment selection: ",
-                             choices = c("None selected",sort(unique(htm@data[[htm@settings@columns$treatment]]))),
+                             choices = c("None selected", treatments),
                              container = w)  
   
   glabel(" ", container=w)
@@ -943,7 +1027,7 @@ guiHandler_LoadImageTable <- function(h, ...) {
 
 
 guiHandler_LoadObjectTable <- function(h, ...) {
-  .path = gfile("Select object table (.csv)", type="open")
+  .path = gfile("Select object table (.csv)", type="open",filter = list("All files" = list(patterns = c("*.csv"))))
   if(is.na(.path)) {
     print("no file selected. loading aborted.")
     return()
@@ -999,7 +1083,7 @@ guiHandler_SetColumns <- function(h, ...) {
                         })
   
   i = i + 1
-  tbl[i,1] <- glabel("Batch (=Experiment=Replicate):", container=tbl)
+  tbl[i,1] <- glabel("Batch (=Plate=Experiment=Replicate):", container=tbl)
   tbl[i,2] <- gcombobox(columns, 
                         selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","experiment",gui=T)), 
                         container=tbl,
@@ -1109,6 +1193,229 @@ guiHandler_ImageQCs <- function(h, ...) {
   
 }
 
+
+guiHandler_AverageAndNormaliseMultipleFeatures <- function(h,...){
+  
+  if(is.null(htm@settings@columns$treatment)) {
+    gmessage("You need to first specify the treatment column [Main..Configure..Assay columns]!")
+    return(NULL)
+  }
+  
+  
+  w <- gwindow("Statistical Analysis", visible=F)
+  
+  # gui_ListSetting <- function(text, setting, key, choices, container) {
+  
+  
+  htm <- get("htm", envir = globalenv())
+  
+  if(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T) { 
+    
+    gui_AddRemoveVectorSetting(setting="statistics$ObjectFeatureSelection",
+                               name=" Object features to be analyzed: ",
+                               choices = colnames(htm@objectdata),
+                               container = w, showSelected=F)  
+
+  } else {
+  
+    gui_AddRemoveVectorSetting(setting="statistics$ImageFeatureSelection",
+                             name=" Image features to be analyzed: ",
+                             choices = colnames(htm@data),
+                             container = w, showSelected=F)  
+  
+    gui_ListSettingDropdown(text = "  Method to average images within one position (well): ",
+                            setting = "statistics",
+                            key = "wellSummaryMethod",
+                            choices = c("weighted_mean_of_images","mean_of_images","median_of_images"),
+                            default = "weighted_mean_of_images",
+                            container = w)
+  
+    gui_ListSettingDropdown(text = "  Number of objects per image:  ",
+                            setting = "statistics",
+                            key = "objectCount",
+                            choices = colnames(htm@data),
+                            default = colnames(htm@data)[1],
+                            container = w)
+  
+    gui_ListSettingTextfield(text = "  Well QC: Minimum number of valid objects:  ",
+                             setting = "statistics",
+                             key = "WellQC_Minimum_Number_Objects",
+                             type = "numeric",
+                             default = 100,
+                             container = w)
+  
+    
+    htmSetListSetting(htm, "statistics","treatmentWithinReplicateSummaryMethod","mean_of_wells", gui=T)
+  
+  } # image/well based stats
+  
+  
+  
+  gui_ListSettingDropdown(text = "  Negative control  ",
+                          setting = "statistics",
+                          key = "negativeControl",
+                          choices = c("all treatments",sort(unique(htm@data[[htm@settings@columns$treatment]]))),
+                          default = colnames(htm@data)[1],
+                          container = w)
+  
+  
+  gui_ListSettingDropdown(text = "  Data transformation  ",
+                          setting = "statistics",
+                          key = "transformation",
+                          choices = c("log2","none"),
+                          default = "log2",
+                          container = w)
+  
+  
+  obj <- glabel("   ", container = w)
+  gg <- ggroup(horizontal = TRUE, container=w, expand=T)
+  obj <- gbutton(" Analyze", container = gg, handler = function(h,...) {
+    
+  if(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T) { 
+    featureList = htmGetVectorSettings("statistics$ObjectFeatureSelection") 
+  } else {
+    featureList = htmGetVectorSettings("statistics$ImageFeatureSelection") 
+  }
+    
+  # initialisation of the treatment stats
+  htm <- get("htm", envir = globalenv())
+  htm@other$treatmentSummaryList <- NULL; htm@other$treatmentSummaryList = list()
+  htm@other$treatmentSummaryMerge <- NULL; htm@other$treatmentSummaryMerge = data.frame()
+  assign("htm", htm, envir = globalenv())
+    
+  for (feature in featureList) {
+      
+    # image QC
+    htm <- get("htm", envir = globalenv())
+    htm <- htmApplyImageQCs(htm)
+    assign("htm", htm, envir = globalenv())
+      
+    print(feature)
+    htmSetListSetting(htm,"statistics","measurement",feature,gui=T)
+      
+    # well summary and normalisation (based on per_image values)
+    if(!(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T)) { 
+      htm <- get("htm", envir = globalenv())
+      htm@wellSummary <- htmWellSummary(htm)
+      assign("htm", htm, envir = globalenv())
+    }
+    
+    # image normalisation for image based statistics
+    if( htmGetListSetting(htm,"statistics","compute_image_based_stats_TF", gui=T) == T ) {
+      htm <- get("htm", envir = globalenv())
+      htm@data <- htmImageNormalization(htm)
+      assign("htm", htm, envir = globalenv())
+    }
+      
+    # cell normalisation for cell based statistics
+    if(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T ) {
+      htm <- get("htm", envir = globalenv())
+      htm@objectdata <- htmObjectNormalization(htm)
+      assign("htm", htm, envir = globalenv())
+    }
+ 
+    # treatment statistics: well based, image based and cell based
+    htm <- get("htm", envir = globalenv())
+    htm@treatmentSummary <- htmTreatmentSummary(htm)
+    assign("htm", htm, envir = globalenv())    
+      
+    # save treatment summary
+    path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting(htm,"statistics","transformation",gui=T),"--",htmGetListSetting(htm,"statistics","measurement",gui=T),".csv"))
+    htmSaveDataTable(htm, "treatmentSummary", path)
+      
+    # store all the treatment summaries in a list
+    if( htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T ) {
+      readouts = c('t_test__objects__p_value','z_score__allBatches__per_object')
+    } else {
+      readouts = c('z_score__allBatches')
+    }
+    
+    tablename = paste0("TreatmentSummary__",feature)
+    htm <- get("htm", envir = globalenv())
+    htm@other$treatmentSummaryList[[tablename]] <- data.frame(htm@treatmentSummary) # this syntax ensures that the data really is copied and not only a pointer to htm is stored in the list
+    
+    for(readout in readouts) { # add featurename to columnname
+      colnames(htm@other$treatmentSummaryList[[tablename]])[which(names(htm@other$treatmentSummaryList[[tablename]] ) == readout)] <- paste(readout,feature,sep="__")
+    }
+    #print(readout)
+    #print(colnames(htm@other$treatmentSummaryList[[tablename]]))
+    assign("htm", htm, envir = globalenv())    
+       
+  }
+    
+    
+    #if(0) {
+    #  l <- htmImageMultiFeatureAnalysis(htm, readout)
+    #  htm@data <- l$images
+    #  htm@other$treatFeat <- l$treatFeat
+    #  htm@other$MDS <- htmMDStreatFeat(htm@other$treatFeat, negCtrl=htmGetListSetting(htm,"statistics","negativeControl"))
+    #  assign("htm", htm, envir = globalenv())    
+    #  htmHeatmap_treatFeat(htm@other$treatFeat,-3,3)
+    #}
+    
+  
+  # compute summary table with all features
+  if(length(readouts)>1) {
+    print("")
+    print("More than one readout selected. Merging into one table...")
+    
+    for (readout in readouts) {
+      
+      mergeTableName = paste0(readout,"__merged")
+      
+      # compute summary table with all features
+      print("Joining results...")
+      htm <- get("htm", envir = globalenv())
+      d <- join_all(htm@other$treatmentSummaryList,"treatment")
+      htm@other[[mergeTableName]] <- subset(d,select=c("treatment",colnames(d)[which(grepl(paste0("^",readout),colnames(d)))]))
+      # move treatment annotation from colunm to rownames
+      rownames(htm@other[[mergeTableName]]) <- htm@other[[mergeTableName]]$treatment
+      htm@other[[mergeTableName]]$treatment <- NULL
+      assign("htm", htm, envir = globalenv())    
+      
+      # show heatmap
+      print(readout)
+      
+      # save table
+      if(!(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T)) { 
+        plotHeatmap_treatFeat(htm@other[[mergeTableName]], -3, 3, rotate=T, readout=readout)
+        initialfilename = paste0("MultiFeatureAnalysis__",readout,"__per_well_stats.csv")
+      } else {
+        plotHeatmap_treatFeat(htm@other[[mergeTableName]], -2, 2, rotate=T, readout=readout)
+        initialfilename = paste0("MultiFeatureAnalysis__",readout,"__per_cell_stats.csv")
+      }
+      path = gfile("Save as...", type="save", initialfilename = initialfilename)
+      htmSaveDataTable(htm, paste0("other$",mergeTableName), path)
+    }
+    
+    
+    # compute MDS
+    #htm@other$MDS <- htmMDStreatFeat(htm@other$treatSumMerge,negCtrl=htmGetListSetting(htm,"statistics","negativeControl"))
+    #scatterLabelPlot_treatFeat(htm@other$MDS,"x","y")
+      
+      #htm@other$treatSumMerge <- subset(d,select=c("treatment",colnames(d)[which(grepl(paste0("^",readout),colnames(d)))]))
+      
+    }
+    
+    ## image based multidimensional analysis
+    
+    
+  })
+  
+  obj <- glabel("   ", container = gg) 
+  gbutton(" Help ", container = gg, handler = function(h,...) { guiShowHelpFile("statistical_analysis.md") })
+  
+  obj <- glabel("   ", container = gg) 
+  gbutton(" Options ", container = gg, handler = guiHandler_AverageAndNormalise_Options)
+  
+  glabel("    ", container=gg)
+  obj <- gbutton(" Close ", container = gg, handler = function(h,...) {
+    dispose(w)
+  })
+  
+  visible(w) <- T
+  
+}
 
 
 guiHandler_AverageAndNormalise <- function(h,...){
@@ -1237,7 +1544,7 @@ guiHandler_AverageAndNormalise <- function(h,...){
     htm <- get("htm", envir = globalenv())
     htm@treatmentSummary <- htmTreatmentSummary(htm)
     assign("htm", htm, envir = globalenv())    
-    
+  
     # save treatment summary
     path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting(htm,"statistics","transformation",gui=T),"--",htmGetListSetting(htm,"statistics","measurement",gui=T),".csv"))
     htmSaveDataTable(htm, "treatmentSummary", path)
@@ -1260,6 +1567,8 @@ guiHandler_AverageAndNormalise <- function(h,...){
   
 }
 
+
+
 guiHandler_AverageAndNormalise_Options <- function(h,...){
 
   w <- gwindow("Statistical Analysis", visible=F)
@@ -1273,7 +1582,7 @@ guiHandler_AverageAndNormalise_Options <- function(h,...){
                           setting = "statistics",
                           key = "positiveControl",
                           choices = c("None selected",sort(unique(htm@data[[htm@settings@columns$treatment]]))),
-                          default = colnames(htm@data)[1],
+                          default = "None selected",
                           container = w)
   
   gui_ListSettingDropdown(text = "  Gradient correction  ",
@@ -1291,6 +1600,14 @@ guiHandler_AverageAndNormalise_Options <- function(h,...){
             handler = function(h,...){
                 htmSetListSetting(htm, "statistics","compute_image_based_stats_TF",svalue(h$obj), gui=T)
               })
+  
+  print("Compute cell based statistics?")
+  gcheckbox("Compute cell based statistics?", 
+            checked = htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF",gui=T), 
+            container = w, 
+            handler = function(h,...){
+              htmSetListSetting(htm, "statistics","compute_cell_based_stats_TF",svalue(h$obj), gui=T)
+            })
   
   
   visible(w) <- T
@@ -1330,20 +1647,22 @@ mbl$Main$Quit$icon = "quit"
 
 mbl$Plot$"Heatmap"$handler = guiHandler_Heatmap
 mbl$Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
-mbl$Plot$"Jitter plot images"$handler = guiHandler_JitterPlotImages
-mbl$Plot$"Jitter plot positions"$handler = guiHandler_JitterPlotWells
+mbl$Plot$"Jitter plot"$handler = guiHandler_JitterPlot
+
+
 #mbl$Plot$"Treatment summary plot"$handler = guiHandler_TreatmentSummarySortedValuesPlot
 
 mbl$Analysis$"Assay overview"$handler = guiHandler_htmOverview
 mbl$Analysis$"Image QC"$handler = guiHandler_ImageQCs
-mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
+#mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
+mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
 
 mbl$Tables$"Image table"$"View"$handler = function(h,...) { edit(htm@data) }
 mbl$Tables$"Image table"$"Load"$handler = guiHandler_LoadImageTable
 mbl$Tables$"Image table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
-#mbl$Tables$"Object Table"$"View"$handler = function(h,...) { edit(htm@objectdata) }
-#mbl$Tables$"Object Table"$"Load"$handler = guiHandler_LoadObjectTable
-#mbl$Tables$"Object Table"$"Save"$handler = guiHandler_SaveObjectTable
+mbl$Tables$"Object Table"$"View"$handler = function(h,...) { edit(htm@objectdata) }
+mbl$Tables$"Object Table"$"Load"$handler = guiHandler_LoadObjectTable
+mbl$Tables$"Object Table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "objectdata", path)}
 mbl$Tables$"Position table"$"View"$handler = function(h,...) { edit(htm@wellSummary) }
 mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "wellSummary", path)}
 mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }

@@ -1,7 +1,7 @@
 # HTM Explorer
 ### HTM Explorer: an R-based software for inspection and analysis of image-derived numerical data
 
-Increasing automation of both microscopy and image analysis leads large amounts of numerical data that need to be curated and (statistically) analyzed.
+Increasing automation of both microscopy and image analysis leads to large amounts of numerical data that need to be curated and (statistically) analyzed.
 
 Typical steps in the inspection and analysis of image-derived numerical data are:
 - Identify confounding variables, e.g. cell density or cell cycle state

@@ -1,10 +1,3 @@
-source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T); results <- htmTreatmentSummary(htm)
-?lm
-100/101
-hist(htm@wellSummary$MeanRatioScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
-hist(htm@wellSummary$wellscore__centroCellsDivAllCells__weighted_mean_of_images)
-colnames(htm@wellSummary)
-hist(htm@wellSummary$logScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
 hist(htm@wellSummary$MeanRatioScore__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
 hist(htm@wellSummary$minusMeanCtrl__ANOVA__centroCellsDivAllCells__weighted_mean_of_images)
 log2(10)
@@ -239,14 +232,21 @@ htm@data$plate = "myPlate"
 source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T)
 htm@data$subpos = 1
 source("/Users/tischi/Dropbox/R/HTM/install.R", chdir=T)
-path = "C:/Users/Christian Tischer/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("install.R");
-path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("install.R");
 path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
-install.packages("markdown")
+sort(unique(htm@data[[htm@settings@columns$experiment]]))
+htm@settings@columns$experiment
+c("a",NULL)
 path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
-htm@data
-log2(20)
-log2(10)
-log2(40)
-head(htm@data)
-colnames(htm@data)
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+traceback()
+treatments
+experiments
+!is.null(htm@settings@columns$experiment)
+htm@settings@columns$experiment
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+?title
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
+path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R");
