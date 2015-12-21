@@ -1,24 +1,23 @@
 
-## specify libraries
-libs = list("gWidgets","gWidgetstcltk","markdown","plyr")
 
 ## install libraries
-# sapply(libs, biocLite) 
-# install.packages("gWidgets", repos='http://cran.us.r-project.org')
-# install.packages("gWidgetstcltk")
-# install.packages("markdown")
-# install.packages("plyr")
-
+if(F) {
+  install.packages("gWidgets", repos='http://cran.us.r-project.org')
+  install.packages("gWidgetstcltk", repos='http://cran.us.r-project.org')
+  install.packages("markdown", repos='http://cran.us.r-project.org')
+  install.packages("plyr", repos='http://cran.us.r-project.org')
+}
 
 ## load libraries
 print("Loading libraries...")
+libs = list("gWidgets","gWidgetstcltk","markdown","plyr")
 sapply(libs, function(x) do.call("library", list(x))) 
 
 options(warn = 2)
 
 # path = "C:\\Users\\Christian Tischer\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
 # path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
-# path = "\\almf\\almf\\software\\scripts\\R\\HTM_Explorer";setwd(path);source("run.R");
+# path = "\\\\almf\\almf\\software\\scripts\\R\\HTM_Explorer";setwd(path);source("run.R");
 # path = "Y:\\R\\HTM_Explorer";setwd(path);source("run.R");
 
 ## source code

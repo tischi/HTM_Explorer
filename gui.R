@@ -690,8 +690,8 @@ guiHandler_JitterPlot <- function(h,...){
   gp <- ggroup(horizontal = T, container=w)
   glabel("Experiment selection:  ", container=gp)
   guiExpSubset <- gcombobox(c("None selected", experiments), 
-                  selected = htmGetListSetting(htm,"visualisation","jitterPlotExpSubset",gui=T), 
                   container = gp, 
+                  selected = htmGetListSetting(htm,"visualisation","jitterPlotExpSubset",gui=T), 
                   handler = function(h,...){
                     htmSetListSetting(htm,"visualisation","jitterPlotExpSubset",svalue(h$obj),gui=T)
                   })
@@ -706,7 +706,14 @@ guiHandler_JitterPlot <- function(h,...){
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Sorting:  ", container=gp)
-  guiSorting <- gcombobox(c("none","alphabetic","median value"), container=gp)
+  guiSorting <- gcombobox(c("none","alphabetic","median value"), 
+                          container = gp, 
+                          selected = htmGetListSetting(htm,"visualisation","jitterPlot_sorting",gui=T), 
+                          handler = function(h,...){
+                            htmSetListSetting(htm, "visualisation","jitterPlot_sorting",svalue(h$obj),gui=T)
+                          }
+  )
+  
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Compute t-test against:  ", container=gp)
@@ -721,10 +728,10 @@ guiHandler_JitterPlot <- function(h,...){
                   cx = svalue(cx),
                   cy = svalue(cy),
                   .ylab = svalue(cy),
-                  datatype = svalue(guiSelectedData),
+                  datatype = htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T),
                   experimentSubset = svalue(guiExpSubset),
                   treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting"),
-                  sorting = svalue(guiSorting),
+                  sorting = htmGetListSetting(htm,"visualisation","jitterPlot_sorting",gui=T),
                   colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
                   showMedian = htmGetListSetting(htm,"visualisation","jitterPlot_showMedianAndMAD_TF",gui=T),
                   showMean = htmGetListSetting(htm,"visualisation","jitterPlot_showMeanAndSD_TF",gui=T),
@@ -738,9 +745,9 @@ guiHandler_JitterPlot <- function(h,...){
       htm <- get("htm", envir = globalenv())
       htmJitterplot(htm, svalue(cx), svalue(cy), .xlim=sort(loc$x),.ylim=sort(loc$y),.ylab=svalue(cy),
                     experimentSubset = svalue(guiExpSubset), 
-                    datatype = svalue(guiSelectedData),
+                    datatype = htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T),
                     colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
-                    sorting = svalue(guiSorting),
+                    sorting = htmGetListSetting(htm,"visualisation","jitterPlot_sorting",gui=T),
                     newdev = F,
                     treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting"),
                     showMedian = htmGetListSetting(htm,"visualisation","jitterPlot_showMedianAndMAD_TF",gui=T),
@@ -759,7 +766,7 @@ guiHandler_JitterPlot <- function(h,...){
                     svalue(cx),svalue(cy),.xlim=sort(loc$x),.ylim=sort(loc$y),
                     experimentSubset = svalue(guiExpSubset), 
                     colorizeTreatments = htmGetListSetting(htm,"visualisation","jitterPlot_colorizeTreatments_TF",gui=T), 
-                    sorting = svalue(guiSorting),
+                    sorting = htmGetListSetting(htm,"visualisation","jitterPlot_sorting",gui=T),
                     datatype = svalue(guiSelectedData),
                     newdev = F, action="click",
                     treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting")
@@ -829,7 +836,16 @@ guiHandler_JitterPlot_Options <- function(h,...) {
             container = w, 
             handler = function(h,...){
               htmSetListSetting(htm, "visualisation","jitterPlot_log2_TF",svalue(h$obj),gui=T)
-            })    
+            })
+  
+  glabel("x axis font size factor:", container=w)
+  gcombobox(c("0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"), 
+                          container = w, 
+                          selected = htmGetListSetting(htm,"visualisation","jitterPlot_x_axis_font_size",gui=T), 
+                          handler = function(h,...){
+                            htmSetListSetting(htm, "visualisation","jitterPlot_x_axis_font_size",svalue(h$obj),gui=T)
+                          }
+  )
   
   visible(w) <- T
 }
@@ -1113,10 +1129,15 @@ guiHandler_SetColumns <- function(h, ...) {
   
   gbutton(" Apply ", container = gg, handler = function(h,...) {
     htm <- get("htm", envir = globalenv()) 
+    # auto-make batch_treat and treat_batch
     cTreat = htmGetListSetting(htm,"columns","treatment",gui=T)
     cBatch = htmGetListSetting(htm,"columns","experiment",gui=T)
     htm@data$Metadata_batch_treatment = paste(htm@data[[cBatch]],htm@data[[cTreat]],sep="__")
     print(paste("Generated new colum Metadata_batch_treatment, combining",cBatch,"and",cTreat))
+    htm@data$Metadata_treatment_batch = paste(htm@data[[cTreat]],htm@data[[cBatch]],sep="__")
+    print(paste("Generated new colum Metadata_treatment_batch, combining",cTreat,"and",cBatch))
+    
+    
     assign("htm", htm, envir = globalenv())   
     dispose(w)
   })
