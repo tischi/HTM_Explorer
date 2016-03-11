@@ -61,11 +61,9 @@ htmShowImagesFromRow <- function(htm,data,irs,appendCommand=""){
   filenamePrefix = htm@settings@visualisation$image_filename_prefix
   foldernamePrefix = htm@settings@visualisation$image_foldername_prefix
   # convert to forward slashes immideately, otherwise gsub has problems later
-  rootFolderTable = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_in_table",gui=T))
-  rootFolderReal = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_on_this_computer",gui=T))  
-  print(paste("  Pattern in table:",rootFolderTable))
-  print(paste("  Pattern for real:",rootFolderReal))
-  
+  rootFolderTable = gsub("\\\\" ,"/",htm@settings@visualisation$image_root_foldername_in_table)
+  rootFolderReal = gsub("\\\\" ,"/",htm@settings@visualisation$image_root_foldername_on_this_computer)  
+
   if( .Platform$OS.type == "unix" ) {
     #imageViewerCMD = "/Applications/Fiji.app/Contents/MacOS/fiji-macosx --no-splash"
     imageViewerCMD = '/Applications/Fiji.app/Contents/MacOS/ImageJ-macosx -debug '
@@ -90,13 +88,10 @@ htmShowImagesFromRow <- function(htm,data,irs,appendCommand=""){
           imagename = strsplit(colname,filenamePrefix)[[1]][2]
           filename = data[[colname]][ir]
           cFolder = paste(foldernamePrefix,imagename,sep="")
-          foldername = data[[cFolder]][ir]
-          print(paste("  Folder in table:",foldername))
-          foldername = gsub("\\\\" ,"/", foldername)
-          #print(paste("  Folder after replacement of slashes:",foldername))
+          #print(cFolder)
+          foldername = gsub("\\\\" ,"/",data[[cFolder]][ir])
           foldername = gsub(rootFolderTable, rootFolderReal, foldername)
-          print(paste("  Folder after subsitution of local mapping:",foldername))
-        
+          
           if ( .Platform$OS.type == "unix" ) {
             #foldername = gsub("\\\\" ,"/", foldername)
             #pathname = paste('"',foldername,"/",filename,'"',sep="")
@@ -703,7 +698,7 @@ htmHeatmap_MarkSelectedTreatment <- function(htm, selectedExp, selectedTreatment
 
 htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset = "None selected", 
                           .xlim=NA, .ylim=NA, datatype="images", colorizeTreatments=F,  
-                          sorting="none", experimentSubset="None selected", newdev = T, 
+                          sorting="None selected", experimentSubset="None selected", newdev = T, 
                           action="plot", printMeanSD = T,  showMean = T, showMedian = T, save2file = F,
                           scaleFromZero = F, reference="None selected") {
   
@@ -777,7 +772,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
   }
    
   print(paste("  sorting:",sorting))
-  if(sorting=="none") {
+  if(sorting=="None selected") {
     ids = 1:nrow(data)
   }
   if(sorting=="alphabetic") {
@@ -946,12 +941,7 @@ htmJitterplot <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSubset =
     } else {  # zooming  
       plot(jp.x, jp.y, xaxt = "n", xlab=.xlab, ylab=.ylab, xlim=.xlim, ylim=.ylim, pch=pchQC, cex=dotsize, col=.colors,  cex.lab =1)
     }
-    if(htmGetListSetting(htm,"visualisation","jitterPlot_x_axis_font_size",gui=T) != "None selected") {
-      x_axis_font_size = as.numeric(htmGetListSetting(htm,"visualisation","jitterPlot_x_axis_font_size",gui=T))
-    } else {
-      x_axis_font_size = 1
-    }
-    axis(1, at=1:length(lx), labels=lx, las=2,  cex.axis = x_axis_font_size)
+    axis(1, at=1:length(lx), labels=lx, las=2,  cex.axis = 1)
     
     plotTitle = ""
     if(experimentSubset[1] != "None selected") {
