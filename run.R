@@ -1,23 +1,37 @@
-
-## specify libraries
-libs = list("gWidgets","gWidgetstcltk","markdown","plyr")
-
-## install libraries
-# sapply(libs, biocLite) 
-# install.packages("gWidgets")
-# install.packages("gWidgetstcltk")
-# install.packages("markdown")
-# install.packages("plyr")
+# path = "C:\\Users\\Christian Tischer\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
+# path = "C:\\Users\\almf\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
+# path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
 
 
-## load libraries
-print("Loading libraries...")
-sapply(libs, function(x) do.call("library", list(x))) 
+if (!require("gWidgets")) {
+  install.packages("gWidgets")
+  library(gWidgets)
+}
+if (!require("gWidgetstcltk")) {
+  install.packages("gWidgetstcltk")
+  library(gWidgetstcltk)
+}
+if (!require("markdown")) {
+  install.packages("markdown")
+  library(markdown)
+}
+if (!require("plyr")) {
+  install.packages("plyr")
+  library(plyr)
+}
+if (!require("RColorBrewer")) {
+  install.packages("RColorBrewer")
+  library(RColorBrewer)
+}
+if (!require("EBImage")) {
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("EBImage")
+  library(EBImage)
+}
+
 
 options(warn = 2)
 
-# path = "C:\\Users\\Christian Tischer\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
-# path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
 
 ## source code
 #setwd(path);source("install.R"); 

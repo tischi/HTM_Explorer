@@ -6,7 +6,8 @@ htmSettingsConstructor = setClass("htmSettings",
                                     visualisation = "list",
                                     statistics = "list",
                                     columns = "list",
-                                    qcImages = "data.frame"
+                                    qcImages = "data.frame",
+                                    qc = "data.frame"
                                   ))
 
 
@@ -40,6 +41,11 @@ htmMake <- function(data = data.frame()) {
                           max = NA, 
                           stringsAsFactors = FALSE),
         
+    qc       = data.frame(colname = "None selected", 
+                          min = NA, 
+                          max = NA, 
+                          stringsAsFactors = FALSE),
+    
     visualisation = list(image_pathname_prefix = "",
                          image_filename_prefix = "FileName_",
                          image_foldername_prefix = "PathName_",
@@ -53,7 +59,6 @@ htmMake <- function(data = data.frame()) {
                          plotting_showQCfailData_TF = T,
                          jitterPlot_scaleFromZero_TF = F
     )
-
     
     
   )

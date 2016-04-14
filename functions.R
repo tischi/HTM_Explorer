@@ -172,7 +172,6 @@ htm_convert_wellNum_posNum_to_xy <- function(wellID, posID) {
 
 }
 
-
 htm_convert_wellNum_to_xy <- function(wellNum) {
   
   ### GET INFO FROM HTM
@@ -204,8 +203,6 @@ htm_convert_wellNum_to_xy <- function(wellNum) {
   
   
 }
-
-
 
 convert_wellA01_to_wellNum <- function(wellA01, nc=12) {
   
@@ -239,7 +236,6 @@ convert_wellA01_to_wellNum <- function(wellA01, nc=12) {
   
 }
 
-
 htmCellsToTreatments <- function(d, stats = "classic", keepdate = F){
   
   if(keepdate) {
@@ -266,7 +262,6 @@ htmCellsToTreatments <- function(d, stats = "classic", keepdate = F){
   
 }
 
-
 htmMaxDeviationPerChannel <- function(treatFeat) {
   
   treatFeat = htm@other$treatFeat
@@ -290,8 +285,6 @@ htmMaxDeviationPerChannel <- function(treatFeat) {
   }
   
 }
-
-
 
 htmAnalyseMahalanobis <- function(htm, d, selectSubset = "") {
   # input:
@@ -348,7 +341,6 @@ htmAnalyseMahalanobis <- function(htm, d, selectSubset = "") {
   return(d)
   
 }
-
 
 htmObjectMultiFeatureAnalysis <- function(htm, centerChannel, stats="classic", perBatchNorm = F, divideByCellArea = F) {
   
@@ -583,7 +575,6 @@ htmObjectMultiFeatureAnalysis <- function(htm, centerChannel, stats="classic", p
   
 }
 
-
 htmMakeFeatureFrame <- function(d) {
   
   
@@ -624,7 +615,6 @@ htmMakeFeatureFrame <- function(d) {
   return(l)
   
 }
-
 
 htmMDStreatFeat <- function(dTreatFeat, negCtrl) {
   
@@ -668,7 +658,6 @@ htmMDStreatFeat <- function(dTreatFeat, negCtrl) {
   
 }
 
-
 htmMDStreatFeat2 <- function(d) {
   
   # MDS
@@ -702,7 +691,6 @@ htmMDStreatFeat2 <- function(d) {
   
 }
 
-
 scaleForDisplay <- function(values,lut_min,lut_max){
   v = 255 * (values-as.numeric(lut_min) )/(as.numeric(lut_max)-as.numeric(lut_min) ) + 1
   toosmall = which(v<1)
@@ -711,8 +699,6 @@ scaleForDisplay <- function(values,lut_min,lut_max){
   v[toolarge]=256
   return(v)
 }
-
-
 
 htmLoadDataFromFile <- function(htm, tablename, path) {
   
@@ -736,6 +722,13 @@ htmSaveDataTable <- function(htm, tablename, path) {
   .table = eval(parse(text=paste("htm@",tablename,sep="")))
   write.csv(.table, file=path)
 
+}
+
+saveTable <- function(data) {
+  
+  path = gfile("Save as...", type="save")
+  write.csv(data, file=path)
+  
   }
 
 htmLoadSetttings <- function(htm, path) {
@@ -814,6 +807,47 @@ htmRemoveImageQCs <- function(htm, indices) {
   
 }
 
+htmAddQC <- function(htm,.colname,.min,.max) {
+  
+  qc = htm@settings@qc
+  
+  if(qc[1,1]=="None selected") {
+    htm@settings@qc <- data.frame(colname=.colname, min=.min, max=.max)
+  } else {
+    htm@settings@qc <- rbind(htm@settings@qc,data.frame(colname=.colname, min=.min, max=.max))
+  }
+  
+  #print(paste("added image QC: colname =",.colname,"; min =",.min,"; max =",.max))
+  return(htm)
+  
+}
+
+htmGetQCs <- function(htm) {
+  
+  nQCs = nrow(htm@settings@qc)
+  QCs = vector()
+  for(i in 1:nQCs) {
+    .colname = htm@settings@qc[i,1]
+    .min =     htm@settings@qc[i,2]
+    .max =     htm@settings@qc[i,3]
+    QCs[length(QCs)+1]=paste(.colname,"  min=",.min,"  max=",.max,sep="")
+  }
+  return(QCs)
+  
+}
+
+htmRemoveQCs <- function(htm, indices) { 
+  
+  htm@settings@qc <- htm@settings@qc[-indices,]
+  if(nrow(htm@settings@qc)==0) {
+    htm@settings@qc <- data.frame(colname="None selected", min=NA, max=NA)
+  }
+  
+  #print(htm@settings@qcImages)
+  return(htm)
+  
+}
+
 htmPrintLog <- function(){
   htm <- get("htm", envir = globalenv()) 
   cat(htm@log)
@@ -830,7 +864,6 @@ htmClearLog <- function(text){
   htm@log = ""
   assign("htm", htm, envir = globalenv())            
 }
-
 
 htmSetListSetting <- function(htm, setting, key, value, gui = F) {
   if(gui==T) {
@@ -850,8 +883,6 @@ htmSetListSetting <- function(htm, setting, key, value, gui = F) {
   return(htm)
 }
  
-
-        
 htmGetListSetting <- function(htm, .setting, .key, gui = F) {  
   if(gui==T) {
     htm <- get("htm", envir = globalenv()) 
@@ -915,8 +946,6 @@ htmRemoveVectorSetting <- function(.setting, .index) {
   assign("htm", htm, envir = globalenv())          
 }
 
-
-
 htmApplyImageQCs <- function(htm) {
     
   print("Performing Image QC:")
@@ -941,11 +970,29 @@ htmApplyImageQCs <- function(htm) {
   
 }
 
-
-
-
-
-
+htmApplyQCs <- function(htm) {
+  
+  print("Performing QCs:")
+  
+  # get QC dataframe from htm object
+  data = htm@data
+  qc = htm@settings@qc
+  
+  if(qc[1,1]=="None selected") {
+    print("  No QCs selected. Setting all data to valid.")
+    htm@data$HTM_qc <- rep(1, nrow(htm@data)) # at this point something happens to the memory of htm... 
+  } else {
+    # compute QC and put results into htm
+    passedQC = dataframeQC(data,qc)  
+    # return the modified htm
+    htm@data$HTM_qc <- passedQC # at this point something happens to the memory of htm...
+  }  
+  
+  print("  (The column HTM_qc has been updated or generated.)")
+  print("")
+  return(htm)
+  
+}
 
 dataframeQC <- function(data=data.frame(),qc=data.frame()) {
   
@@ -963,22 +1010,19 @@ dataframeQC <- function(data=data.frame(),qc=data.frame()) {
     
     print(paste("Measurement:", qc$colname[i]))
     print(paste("  Allowed range:", qc$min[i], "..",qc$max[i], "and not NA."))
-    print(paste("  Images total:", length(passedthisqc)))
-    print(paste("  Images failed:", sum(!passedthisqc)))        
+    print(paste("  Total:", length(passedthisqc)))
+    print(paste("  Failed:", sum(!passedthisqc)))        
     
   }
   
   print(paste(" "))
   print(paste("Summary of all QCs:"))
-  print(paste("  Images total (all QCs):", length(passedallqc)))
-  print(paste("  Images failed (all Qcs):", sum(!passedallqc)))        
+  print(paste("  Total (all QCs):", length(passedallqc)))
+  print(paste("  Failed (all Qcs):", sum(!passedallqc)))        
   
   return(passedallqc)    
   
 }
-
-
-
 
 htmImageNormalization <- function(htm) {
     
@@ -1103,7 +1147,6 @@ htmImageNormalization <- function(htm) {
   return(htm@data)
    
  }
-
 
 htmObjectNormalization <- function(htm) {
   
@@ -1251,6 +1294,401 @@ htmObjectNormalization <- function(htm) {
   
 }
 
+
+#
+# Generic data normalisation
+#
+
+htmNormalization <- function(htm) {
+  
+  print("*")
+  print("* Data normalization")
+  print("*" )
+  print("")
+  
+  data <- htm@data
+  
+  # get all necessary information
+  measurement <- htmGetListSetting(htm,"statistics","measurement")
+  experiments <- sort(unique(data[[htm@settings@columns$experiment]]))
+  experiments_to_exclude <- htmGetVectorSettings("statistics$experiments_to_exclude")
+  transformation <- htmGetListSetting(htm,"statistics","transformation")
+  gradient_correction <- htmGetListSetting(htm,"statistics","gradient_correction")
+  normalisation <- htmGetListSetting(htm,"statistics","normalisation")
+  negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  
+  cat("\nMeasurement:\n")
+  print(measurement)
+  cat("\nNegative Control:\n")
+  print(negcontrols)
+  
+  #
+  # Check           
+  #
+  if(measurement=="None selected") {
+    cat("\n\nError: please select a measurement!\n\n")
+    return(htm)
+  }
+  if( ! (measurement %in% names(htm@data)) ) {
+    cat(names(htm@data))
+    cat("\nError: selected measurement is none of above data column names!\n")
+    return(htm)
+  }
+  
+  
+  #
+  # Analyze
+  #
+  print("Performing quality cntrol:")
+  htm <- htmApplyQCs(htm)
+  
+  print(paste("Total data points",length(data$HTM_qc)))
+  print(paste("Valid data points",sum(data$HTM_qc)))
+  
+  manipulation <- ""
+  input <- measurement
+  
+  if(transformation == "log2") {
+    
+    print(paste("  log2 of", input))
+    
+    # compute log transformation
+    # create new column name
+    manipulation <- paste(manipulation,"log2",sep="__")
+    
+    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    data[[output]] <- log2(data[[input]]) 
+    
+    # todo: this should be at a more prominent position
+    print("Replacing -Inf in log scores ******************************")
+    logScores = data[[output]]
+    finiteLogScores = subset(logScores,is.finite(logScores))
+    minimum = min(finiteLogScores)
+    idsInf = which(is.infinite(logScores))
+    logScores[idsInf] <- minimum
+    data[[output]] <- logScores
+    
+    #htmAddLog("Replacing Infinities in Log2 Score by")
+    #htmAddLog(minimum)
+    #htmAddLog("Affected Wells:")
+    #for(id in idsInf) {
+    #  htmAddLog(htm@wellSummary$treatment[id])
+    #  htmAddLog(htm@wellSummary$wellQC[id])
+    #  htmAddLog(htm@wellSummary[id,logScoreName])
+    #  htmAddLog("")
+    #}
+    
+    input <- output
+    
+  } # if log transformation
+  
+  
+  if(gradient_correction == "median_polish") {
+    
+    print(paste("  median polish of", input))
+    
+    # also store the background
+    gradient = paste("HTM_norm",paste(manipulation,"medpolish_gradient",sep="__"),measurement,sep="__")
+    
+    manipulation <- paste(manipulation,"medpolish_residuals",sep="__")
+    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    
+    data[[output]] = rep(NA,nrow(data))
+    
+    for(experiment in experiments) {
+        
+      if(experiment %in% experiments_to_exclude) next
+        
+      print("")
+      print(paste("  Experiment:",experiment))
+        
+      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+      #indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+        
+      # extract values
+      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+      mp = htmMedpolish(x=xy$x, y=xy$y, val=data[indices_all, input])
+      
+      data[indices_all, output] = mp$residuals
+      data[indices_all, gradient] = mp$gradient
+      
+    } # experiment loop
+    
+    input <- output
+    
+  } #medpolish
+  
+  
+  
+  if( gradient_correction %in% c("median_7x7","median_5x5","median_3x3")) {
+    
+    print(paste("  median filter of", input))
+    
+    # also store the background
+    gradient = paste("HTM_norm",paste(manipulation,gradient_correction,"gradient",sep="__"),measurement,sep="__")
+    
+    manipulation <- paste(manipulation,gradient_correction,"residuals",sep="__")
+    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    
+    data[[output]] = rep(NA,nrow(data))
+    
+    for(experiment in experiments) {
+      
+      if(experiment %in% experiments_to_exclude) next
+      
+      print(paste("  Experiment:",experiment))
+      
+      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+    
+      if(gradient_correction == "median_7x7") {
+        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=7)
+      }
+      if(gradient_correction == "median_5x5") {
+        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
+      }
+      if(gradient_correction == "median_3x3") {
+        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=3)
+      }
+      
+      data[indices_all, output] = mp$residuals
+      data[indices_all, gradient] = mp$gradient
+      
+    } # experiment loop
+    
+    input <- output
+    
+  } #median filter
+
+
+  
+  if(normalisation != "None selected") {
+    
+    # init columns
+    manipulation <- paste(manipulation,normalisation,sep="__")
+    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    data[[output]] = NA
+    
+    # computation
+    cat("\nComputing normalisations...\n")
+    
+    for(experiment in experiments) {
+      
+      if(experiment %in% experiments_to_exclude) next
+      
+      print("")
+      print(paste("  Experiment:",experiment))
+      
+      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[measurement]]))
+      
+      if("all treatments" %in% negcontrols) {
+        indices_controls_ok <- indices_ok
+      } else {
+        indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & !is.na(data[[measurement]]) & (data$HTM_qc) & (data[[htm@settings@columns$treatment]] %in% negcontrols))
+      }
+      
+      print(paste("   Total", length(indices_all)))
+      print(paste("   Valid", length(indices_ok)))      
+      print(paste("   Valid Control", length(indices_controls_ok)))
+      
+      # extract control values 
+      valuescontrol <- data[indices_controls_ok, measurement]
+      #print(valuescontrol)
+      
+      nr_of_controls <-  length(valuescontrol)
+      meancontrol <- mean(valuescontrol)    
+      sigmacontrol <- sd(valuescontrol) 
+      mediancontrol <- median(valuescontrol)
+      madcontrol <- mad(valuescontrol)  
+      semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
+      print(paste("    Control Mean:", meancontrol))
+      print(paste("    Control SD:", sigmacontrol))
+      print(paste("    Control Median:", mediancontrol))
+      print(paste("    Control MAD:", madcontrol))
+      
+      if(normalisation == "z_score") {
+        data[indices_all, output] <- ( data[indices_all, measurement] - meancontrol ) / sigmacontrol
+      } 
+      else if(normalisation == "robust_z_score") {
+        data[indices_all, output] <- ( data[indices_all, measurement] - mediancontrol ) / madcontrol
+      } 
+      else if(normalisation == "subtract_mean_ctrl") {
+        data[indices_all, output] <- data[indices_all, measurement] - meancontrol 
+      }
+      else if(normalisation == "divide_by_mean_ctrl") {
+        data[indices_all, output] <- data[indices_all, measurement] / meancontrol 
+      }
+      else if(normalisation == "subtract_median_ctrl") {
+        data[indices_all, output] <- data[indices_all, measurement] - mediancontrol 
+      }
+      else if(normalisation == "divide_by_median_ctrl") {
+        data[indices_all, output] <- data[indices_all, measurement] / mediancontrol 
+      }
+      
+    } # experiment loop
+    
+    input <- output
+  }
+  
+  return(data)
+  
+}
+
+
+
+#
+# Select a subset of the data
+#
+# ids <- htmSelectData(htm, treatments=unique(htm@data$Metadata_Well), measurement="HTM__z_score__projection", r=c(1,100), method="random", n=3)
+# htmShowDataFromRow(htm,htm@data,ids)
+
+htmSelectData <- function(htm, treatments, measurement, r=c(2,100), method="random", n=5, save_to_disc=FALSE) {
+  
+  print("*")
+  print("* Data selection")
+  print("*" )
+  print("")
+  
+  data <- htm@data
+  
+  cat("\nMeasurement:\n")
+  print(measurement)
+  cat("\nTreatments:\n")
+  print(treatments)
+  
+  htm <- htmApplyQCs(htm)
+  
+  print(paste("Total data points",length(data$HTM_qc)))
+  print(paste("Valid data points",sum(data$HTM_qc)))
+  
+  ids_selected = vector()
+  
+  for(treatment in treatments) {
+    
+    ids <- which( (data[[htm@settings@columns$treatment]] == treatment) &
+                  (data$HTM_qc==1) & 
+                  (data[[measurement]] > r[1]) &
+                  (data[[measurement]] < r[2]) )
+  
+    if(method == "random") {
+      ids <- sample(ids, min(n,length(ids)))
+    }
+    
+    ids_selected = c(ids_selected, ids)
+  }
+  
+  if(save_to_disc) {
+    data_subset <- data[ids_selected,]
+    saveTable(data_subset)
+  }
+  
+  return(ids_selected)
+  
+}
+
+
+
+
+#
+# Compute scalar product of each data point with the average effect of the whole treatment
+#
+
+htmComputeCombinedVector <- function(htm) {
+  
+  print("*")
+  print("* Compute combined effect")
+  print("*" )
+  print("")
+  
+  data <- htm@data
+  
+  # get all necessary information
+  measurement <- htmGetListSetting(htm,"statistics","measurement")
+  experiments <- sort(unique(data[[htm@settings@columns$experiment]]))
+  experiments_to_exclude <- htmGetVectorSettings("statistics$experiments_to_exclude")
+  negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  normalisation <- htmGetListSetting(htm,"statistics","normalisation")
+  cos_theta_exponent <- as.numeric(htmGetListSetting(htm,"statistics","cos_theta_exponent"))
+  treatments <- data[[htm@settings@columns$treatment]]
+  
+  print("Performing quality cntrol:")
+  htm <- htmApplyQCs(htm)
+  
+  print(paste("Total data points",length(data$HTM_qc)))
+  print(paste("Valid data points",sum(data$HTM_qc)))
+  
+  #
+  # initialisation
+  #
+  length = paste("HTM",normalisation,"length",sep="__")
+  data <- data[ , !(names(data) %in% length) ]
+  
+  cosine = paste("HTM",normalisation,"cosine",sep="__")
+  data <- data[ , !(names(data) %in% cosine) ]
+  
+  projection = paste("HTM",normalisation,"projection",sep="__")
+  data <- data[ , !(names(data) %in% cosine) ]
+
+  features = names(data)[which(grepl(normalisation,names(data)))]
+  cat("\nFeatures:")
+  print(features)
+
+  data[[length]] = NA
+  data[[cosine]] = NA
+  data[[projection]] = NA
+  
+    
+  # computation
+  cat("\nComputing length effect\n")
+  
+  for(experiment in experiments) {
+    
+    if(experiment %in% experiments_to_exclude) next
+    
+    print(paste("  Experiment:",experiment))
+    
+    for (treatment in unique(treatments)) {
+
+      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & (data[[htm@settings@columns$treatment]] == treatment) )
+      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment) & (data[[htm@settings@columns$treatment]] == treatment) )
+      
+      # compute normalised direction
+      v_avg = vector()
+      for (feature in features) {
+        v_avg <- c(v_avg, mean(data[indices_ok, feature], na.rm=T))  
+      }
+      print(treatment)
+      names(v_avg) <- features
+      print(v_avg)
+      
+      # compute length
+      data[indices_all, length] = 0
+      for (feature in features) { # sum square
+        data[indices_all, length] = data[indices_all, length] + data[indices_all, feature]^2
+      }
+      data[indices_all, length] = sqrt(data[indices_all, length])
+      
+      # compute cosine
+      data[indices_all, cosine] = 0
+      for (feature in features) {  # scalar product
+        data[indices_all, cosine] = data[indices_all, cosine] + data[indices_all, feature] * v_avg[feature]
+      }
+      v_avg_norm <- sqrt(sum(v_avg*v_avg))
+      data[indices_all, cosine] = data[indices_all, cosine] / (data[indices_all, length] * v_avg_norm)
+      
+      # compute projection
+      data[indices_all, projection] = data[indices_all, length] * sign(data[indices_all, cosine]) * abs(data[indices_all, cosine])^cos_theta_exponent 
+      #data[indices_all, projection] = abs(data[indices_all, cosine])^cos_theta_exponent 
+      
+    }
+    
+    
+  } # experiment loop
+  
+  return(data)
+  
+}
 
 
 
@@ -1506,7 +1944,6 @@ htmWellSummary <- function(htm) {
     measurement <- scorename
     
     
-    
     # put wellscores into HTM object
     htm@wellSummary <- results
       
@@ -1537,7 +1974,6 @@ htmWellSummary <- function(htm) {
     htmAddLog(measurement);
     htmAddLog("");
     
-
     # check whether we know everything            
     if( is.null(experiments) ||
           (negcontrols=="None selected") ||
@@ -1633,7 +2069,7 @@ htmWellSummary <- function(htm) {
     htm@wellSummary[[minusMeanCtrlName]] <- rep(NA,nrow(htm@wellSummary))
     htm@wellSummary[[robust_z_score_name]] <- rep(NA,nrow(htm@wellSummary))
     
-    
+     
     # init documentation of control values
     
     if(transformation == "log2") {
@@ -2318,13 +2754,14 @@ htmTreatmentSummary <- function(htm) {
 
 htmMedpolish <- function(xx, yy, val) {
   
+  
+  # averaging for multi-sub-positions?
   ny = htm@settings@visualisation$number_positions_y
   nx = htm@settings@visualisation$number_positions_x
-  
   m = matrix(nrow=nx,ncol=ny)
   mi = m 
   for(i in seq(1:length(val))) {
-    print(paste(xx[i],yy[i],val[i]))
+    #print(paste(xx[i],yy[i],val[i]))
     m[xx[i],yy[i]] <- val[i]
     mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
   }
@@ -2345,9 +2782,48 @@ htmMedpolish <- function(xx, yy, val) {
     val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
   }
   
-  
   list(gradient = val_gradient,
       residuals = val_residual)
+}
+
+htmMedian <- function(xx, yy, val, size) {
+  
+  print(paste("  median filter with size", size))
+  
+  # averaging for multi-sub-positions?
+  ny = htm@settings@visualisation$number_positions_y
+  nx = htm@settings@visualisation$number_positions_x
+  m = matrix(nrow=nx, ncol=ny)
+  mi = m 
+  for(i in seq(1:length(val))) {
+    m[xx[i],yy[i]] <- val[i]
+    mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
+  }
+  
+  idsNA <- which(is.na(m)) # medianFilter cannot handle NA
+  m[idsNA] <- 0 
+  #print(head(m))
+  norm <- max(m) # medianFilter needs data between 0 and 1
+  m <- m / norm 
+  m_gradient = medianFilter(m, size)
+  m_gradient[idsNA] <- NA
+  m <- norm * m
+  m_gradient <- norm * m_gradient
+  m_residuals <- m - m_gradient
+  #print(head(m_gradient))
+  #ddd
+  
+  # convert back
+  # averaging for multi-sub-positions?
+  val_gradient = vector(length=length(val))
+  val_residual = vector(length=length(val))
+  for(i in seq(1:length(val))) {
+    val_gradient[mi[xx[i],yy[i]]] = m_gradient[xx[i],yy[i]]
+    val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
+  }
+  
+  list(gradient = val_gradient,
+       residuals = val_residual)
 }
 
 
