@@ -1045,8 +1045,6 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
   
   
   # compute some statistics for printing and plotting
-  
-  
   jp.y.qc <- ifelse(qc==1, jp.y, NA)
   jp.x.qc <- ifelse(qc==1, jp.x, NA)
   
@@ -1188,9 +1186,9 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     title(plotTitle, cex.main = 0.8)
     
     if(colorizeTreatments == T) {
+      print("  putting legend")
       treatments <- treatments[ids]
-      dx = -0.5
-      legend("topright", inset=c(dx,0), legend = unique(treatments), col=1:length(treatments), pch=16, bty="n")
+      legend("topright", inset=c(0,0), legend = unique(treatments), col=1:length(treatments), pch=16, bty="n")
       #min(jp.x), max(jp.y), 
     }
     
@@ -1610,6 +1608,7 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     vy <- data[[cy]]
   }
   
+  
   if( colorize != "None selected") {
     if(aggregate != "None selected") {
       .colors <- tapply(htm@data[[colorize]], htm@data[[aggregate]], function(z) {z[1]})
@@ -1619,7 +1618,7 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     col_pal <- rainbow(length(unique(htm@data[[colorize]])))
     .colors = col_pal[factor(.colors)]
   } else {
-    .colors = rep(1, nrow(vx))
+    .colors = rep(1, length(vx))
   }  
   
   
