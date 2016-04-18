@@ -997,12 +997,12 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     ids = 1:nrow(data)
   }
   if(sorting=="alphabetic") {
-    print("applying alphabetic sorting...")
+    print("  applying alphabetic sorting")
     #print(factor(data[[cx]]))
     ids <- order(data[[cx]],na.last=NA)
   }
   if(sorting=="median value") {
-    print("MEDIAN")
+    print("  applying median sorting")
     #print(unique(factor(data[[cx]])))
     ids_cx = split(1:nrow(data),data[[cx]])
     data$medians = rep(NA,nrow(data))
@@ -1019,11 +1019,26 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     ids <- order(data$medians,na.last=NA)
   }
   
-  # assign sorted data
+  
+  # add jitter to sorted data
   print("  prepare plotting..")
   factors <- factor(data[ids,cx], levels=unique(data[ids,cx])); #print(factors)
-  jp.x <- jitter(as.numeric(factors),htm@settings@visualisation$jitter)
-  lx = levels(factors); #print(lx)
+  
+  if(action=="plot") {
+    print("  adding jitter")
+    jp.x <- jitter(as.numeric(factors),htm@settings@visualisation$jitter)
+    htm <- get("htm", envir = globalenv()) # remember for click&view
+    htm@settings@visualisation$jp.x <- jp.x 
+    assign("htm", htm, envir = globalenv())
+  }
+  
+  if(action=="click") {
+    print("  taking stored jitter")
+    htm <- get("htm", envir = globalenv())
+    jp.x <- htm@settings@visualisation$jp.x 
+  }
+  
+  lx = levels(factors);
   jp.y <- data[ids,cy] 
   qc <- qc[ids]
   
@@ -1037,7 +1052,7 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
   print(paste("  colorizeTreatments:",colorizeTreatments==T))
   if(colorizeTreatments == T) {
     treatments <- treatments[ids]
-    print("colorizing by treatment")
+    print("  colorizing by treatment")
     .colors = factor(treatments, levels=unique(treatments)) 
   } else {
     .colors = rep("grey30", nrow(data))
