@@ -1354,9 +1354,9 @@ htmNormalization <- function(htm) {
     
     # compute log transformation
     # create new column name
-    manipulation <- paste(manipulation,"log2",sep="__")
+    manipulation <- paste0(manipulation,"__log2__")
     
-    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    output = paste0("HTM_norm",manipulation,measurement)
     data[[output]] <- log2(data[[input]]) 
     
     # todo: this should be at a more prominent position
@@ -1388,10 +1388,10 @@ htmNormalization <- function(htm) {
     print(paste("  median polish of", input))
     
     # also store the background
-    gradient = paste("HTM_norm",paste(manipulation,"medpolish_gradient",sep="__"),measurement,sep="__")
+    gradient = paste0("HTM_norm",paste0(manipulation,"__medpolish_gradient__"),measurement)
     
-    manipulation <- paste(manipulation,"medpolish_residuals",sep="__")
-    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    manipulation <- paste0(manipulation,"__medpolish_residuals__")
+    output = paste0("HTM_norm",manipulation,measurement)
     
     data[[output]] = rep(NA,nrow(data))
     
@@ -1425,10 +1425,10 @@ htmNormalization <- function(htm) {
     print(paste("  median filter of", input))
     
     # also store the background
-    gradient = paste("HTM_norm",paste(manipulation,gradient_correction,"gradient",sep="__"),measurement,sep="__")
+    gradient = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__gradient__"),measurement)
     
-    manipulation <- paste(manipulation,gradient_correction,"residuals",sep="__")
-    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    manipulation <- paste0(manipulation,gradient_correction,"__residuals__")
+    output = paste0("HTM_norm",manipulation,measurement)
     
     data[[output]] = rep(NA,nrow(data))
     
@@ -1460,13 +1460,45 @@ htmNormalization <- function(htm) {
     
   } #median filter
 
-
+  
+  if( gradient_correction %in% c("z_score_5x5")) {
+    
+    print(paste("  median filter of", input))
+    
+    # also store the background
+    gradient = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__gradient__"),measurement)
+    manipulation <- paste0(manipulation,gradient_correction,"__residuals__")
+    output = paste0("HTM_norm",manipulation,measurement)
+    
+    data[[output]] = rep(NA,nrow(data))
+    
+    for(experiment in experiments) {
+      
+      if(experiment %in% experiments_to_exclude) next
+      
+      print(paste("  Experiment:",experiment))
+      
+      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+  
+      mp = htmLocalZScore(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
+      
+      data[indices_all, output] = mp$residuals
+      data[indices_all, gradient] = mp$gradient
+      
+    } # experiment loop
+    
+    input <- output
+    
+  } #median filter
+  
+  
   
   if(normalisation != "None selected") {
     
     # init columns
-    manipulation <- paste(manipulation,normalisation,sep="__")
-    output = paste("HTM_norm",manipulation,measurement,sep="__")
+    manipulation <- paste0(manipulation,"__",normalisation,"__")
+    output = paste0("HTM_norm",manipulation,measurement)
     data[[output]] = NA
     
     # computation
@@ -1576,6 +1608,8 @@ htmSelectData <- function(htm, treatments, measurement, r=c(2,100), method="rand
     }
     
     ids_selected = c(ids_selected, ids)
+    print(paste(treatment,"selected",length(ids)))
+    
   }
   
   if(save_to_disc) {
@@ -1628,7 +1662,7 @@ htmComputeCombinedVector <- function(htm) {
   data <- data[ , !(names(data) %in% cosine) ]
   
   projection = paste("HTM",normalisation,"projection",sep="__")
-  data <- data[ , !(names(data) %in% cosine) ]
+  data <- data[ , !(names(data) %in% projection) ]
 
   features = names(data)[which(grepl(normalisation,names(data)))]
   cat("\nFeatures:")
@@ -1640,7 +1674,7 @@ htmComputeCombinedVector <- function(htm) {
   
     
   # computation
-  cat("\nComputing length effect\n")
+  cat("\nComputing combined effect\n")
   
   for(experiment in experiments) {
     
@@ -1903,7 +1937,7 @@ htmWellSummary <- function(htm) {
       
       if(colObjectCount != "None selected") {
         numObjectsOK <- sum(htm@data[idsOK,colObjectCount])
-        if( numObjectsOK < minNumObjects ) wellQC <- 0
+        if( is.na(numObjectsOK) || (numObjectsOK < minNumObjects) ) wellQC <- 0
       } else {
         numObjectsOK <- NA
       }
@@ -2751,6 +2785,8 @@ htmTreatmentSummary <- function(htm) {
 }
 
 
+# todo: combine this stuff
+# put matrix generation into main function!
 
 htmMedpolish <- function(xx, yy, val) {
   
@@ -2805,6 +2841,56 @@ htmMedian <- function(xx, yy, val, size) {
   #print(head(m))
   norm <- max(m) # medianFilter needs data between 0 and 1
   m <- m / norm 
+  m_gradient = medianFilter(m, size)
+  m_gradient[idsNA] <- NA
+  m <- norm * m
+  m_gradient <- norm * m_gradient
+  m_residuals <- m - m_gradient
+  #print(head(m_gradient))
+  #ddd
+  
+  # convert back
+  # averaging for multi-sub-positions?
+  val_gradient = vector(length=length(val))
+  val_residual = vector(length=length(val))
+  for(i in seq(1:length(val))) {
+    val_gradient[mi[xx[i],yy[i]]] = m_gradient[xx[i],yy[i]]
+    val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
+  }
+  
+  list(gradient = val_gradient,
+       residuals = val_residual)
+}
+
+htmLocalZScore <- function(xx, yy, val, size) {
+  
+  print(paste("  median filter with size", size))
+  
+  # averaging for multi-sub-positions?
+  ny = htm@settings@visualisation$number_positions_y
+  nx = htm@settings@visualisation$number_positions_x
+  m = matrix(nrow=nx, ncol=ny)
+  mi = m 
+  for(i in seq(1:length(val))) {
+    m[xx[i],yy[i]] <- val[i]
+    mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
+  }
+  
+  # prepare
+  idsNA <- which(is.na(m)) # medianFilter cannot handle NA
+  #m[idsNA] <- 0 
+  #print(head(m))
+  norm <- max(m) # medianFilter needs data between 0 and 1
+  m <- m / norm 
+  
+  # filter
+  # var = avg[(mean-xi)^2] = avg[mean^2-2*mean*xi+xi^2] = avg[mean^2] - 2*avg[mean]^2 + avg[xi^2] = avg[xi^2] - avg[xi]^2
+  f = makeBrush(7, shape='disc')
+  f = f/sum(f)
+  m_avg = filter2(m, f)
+  m_square
+  
+  
   m_gradient = medianFilter(m, size)
   m_gradient[idsNA] <- NA
   m <- norm * m
