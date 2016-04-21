@@ -538,17 +538,16 @@ htmShowHeatmapData <- function(htm, selectedExp="", selectedMeasurement, markQC 
   
   #par(mar=c(5.1,6.1,6.1,2.1))
   
-  print("plotting per_image or mean_averaged per_object data")
-    xy = htm_convert_wellNum_posNum_to_xy(dat[[htm@settings@columns$wellnum]],dat[[htm@settings@columns$posnum]])
+  xy = htm_convert_wellNum_posNum_to_xy(dat[[htm@settings@columns$wellnum]],dat[[htm@settings@columns$posnum]])
     
-    plot(x = xy$x, y = xy$y, col=colpal[dat$val], 
-         ylim = rev(range(xy$y)),  
-         xlim = round(range(xy$x)),
-         xaxt = "n", yaxt = "n", xaxs = "i",
-         pch = 15, cex= htm@settings@visualisation$heatmap_image_size_cex, xlab="", ylab="",
-         asp = 1
-    )
-    title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
+  plot(x = xy$x, y = xy$y, col=colpal[dat$val], 
+       ylim = rev(range(xy$y)),  
+       xlim = round(range(xy$x)),
+       xaxt = "n", yaxt = "n", xaxs = "i",
+       pch = 15, cex= htm@settings@visualisation$heatmap_image_size_cex, xlab="", ylab="",
+       asp = 1
+  )
+  title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
   
   
   axis(1, at=1:plate.ncol, labels=1:plate.ncol, las=1,  cex.axis = 1)
@@ -560,16 +559,15 @@ htmShowHeatmapData <- function(htm, selectedExp="", selectedMeasurement, markQC 
   #todo: change qcImages to ImageQC
   
   if(markQC) {
-    
       
-      if(!is.null(dat$HTM_qcImages)) {    
+      if(!is.null(dat$HTM_qc)) {    
         print("  adding image QC.")
-        ids <- which(dat$HTM_qcImages==0)
+        ids <- which(dat$HTM_qc==0)
         x <- vector(length=length(ids))
         y <- vector(length=length(ids))
-        for (i in ids) {
-          x[i] <- xy$x[i]
-          y[i] <- xy$y[i]
+        for (i in seq(1,length(ids))) {
+          x[i] <- xy$x[ids[i]]
+          y[i] <- xy$y[ids[i]]
         }
         points(x, y, pch=4, cex=1*htm@settings@visualisation$heatmap_image_size_cex)
         

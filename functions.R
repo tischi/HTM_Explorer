@@ -1439,20 +1439,22 @@ htmNormalization <- function(htm) {
       print(paste("  Experiment:",experiment))
       
       indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+      
+      xy = htm_convert_wellNum_to_xy(data[indices_ok, htm@settings@columns$wellnum]) 
     
       if(gradient_correction == "median_7x7") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=7)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=7)
       }
       if(gradient_correction == "median_5x5") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=5)
       }
       if(gradient_correction == "median_3x3") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=3)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=3)
       }
       
-      data[indices_all, output] = mp$residuals
-      data[indices_all, gradient] = mp$gradient
+      data[indices_ok, output] = mp$residuals
+      data[indices_ok, gradient] = mp$gradient
       
     } # experiment loop
     
