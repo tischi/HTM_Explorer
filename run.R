@@ -28,7 +28,10 @@ if (!require("EBImage")) {
   biocLite("EBImage")
   library(EBImage)
 }
-
+if (!require("raster")) {
+  install.packages("raster")
+  library(raster)
+}
 
 options(warn = 2)
 

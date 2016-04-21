@@ -1442,13 +1442,13 @@ htmNormalization <- function(htm) {
       xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
     
       if(gradient_correction == "median_7x7") {
-        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=7)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=7)
       }
       if(gradient_correction == "median_5x5") {
-        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
       }
       if(gradient_correction == "median_3x3") {
-        mp = htmMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=3)
+        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_all, input], size=3)
       }
       
       data[indices_all, output] = mp$residuals
@@ -1469,10 +1469,10 @@ htmNormalization <- function(htm) {
     print(paste("  5x5 z-score filter of", input))
     
     # also store the background
-    standard_deviation = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__standard_deviation_5x5__"),measurement)
-    mean_value = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__mean_5x5__"),measurement)
+    standard_deviation = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__standard_deviation__"),measurement)
+    mean_value = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__mean__"),measurement)
     manipulation <- paste0(manipulation,"__",gradient_correction)
-    output = paste0("HTM_norm",manipulation,measurement)
+    output = paste0("HTM_norm",manipulation,"__",measurement)
     
     data[[output]] = rep(NA,nrow(data))
     data[[standard_deviation]] = rep(NA,nrow(data))
@@ -2154,6 +2154,8 @@ htmWellSummary <- function(htm) {
       valuescontrol <- htm@wellSummary[indices_controls_ok, measurement]
       print(measurement)
       
+      
+      if(0) {
       if("all treatments" %in% negcontrols) {
         print("") 
       } else {
@@ -2166,6 +2168,8 @@ htmWellSummary <- function(htm) {
           print(paste("        Images_OK:",htm@wellSummary$numImagesOK[id]))
         }
       }
+      }
+      
       
       nr_of_controls <-  length(valuescontrol)
       meancontrol <- mean(valuescontrol)    
@@ -2749,6 +2753,7 @@ htmTreatmentSummary <- function(htm) {
     print(paste("Negative control:",negative_ctrl))
     print("")
   
+    z_scores = c()
     
     for(exp in experiments) {
       
@@ -2769,13 +2774,16 @@ htmTreatmentSummary <- function(htm) {
         #print(paste(min_neg,max_neg,mean_pos,sd_pos))
         #probability_of_pos_outside_neg = 1 - integrate( function(x) {dnorm(x,mean=mean_pos,sd=sd_pos)}, min_neg, max_neg)$value
         z_score = (mean_pos-mean_neg) / sd_neg
+        z_scores = c(z_scores, z_score)
         #t_value = (mean_pos-mean_neg) / sqrt(sd_pos^2+sd_neg^2)
         
         
         #print(paste0(exp,"  N_neg: ",n_neg,"  N_pos: ",n_pos,"  Probability: ",round(probability_of_pos_outside_neg,3))) #,"  t-value: ",t_value))
-        quality = ifelse(abs(z_score)<1,"XX",
-                         ifelse(abs(z_score)<2,"X",""
-                                       ))
+        #quality = ifelse(abs(z_score)<1,"XX",
+        #                 ifelse(abs(z_score)<2,"X",""
+        #                               ))
+        quality = ""
+        
         if ( exp %in% htmGetVectorSettings("statistics$experiments_to_exclude") ) {
           comment = "(Excluded)  " 
           } else {
@@ -2786,6 +2794,13 @@ htmTreatmentSummary <- function(htm) {
 
     }
   }
+  
+  print("")
+  print(paste("Mean z-score",mean(z_scores, na.rm=T)))
+  print(paste("SD z-score",sd(z_scores, na.rm=T)))
+  print(paste("N z-score",length(z_scores)))
+  
+              
   
   
   # sorted hit-list with significance level * ** ***
@@ -2835,104 +2850,69 @@ htmMedpolish <- function(xx, yy, val) {
       residuals = val_residual)
 }
 
-htmMedian <- function(xx, yy, val, size) {
+htmLocalMedian <- function(xx, yy, val, size) {
   
   print(paste("  median filter with size", size))
   
-  # averaging for multi-sub-positions?
-  ny = htm@settings@visualisation$number_positions_y
+ 
   nx = htm@settings@visualisation$number_positions_x
-  m = matrix(nrow=nx, ncol=ny)
+  ny = htm@settings@visualisation$number_positions_y
+  x <- htmXYVtoMatrix(xx, yy, val, nx, ny) # averaging for multi-sub-positions?
+  m <- x$m
+  
+  m_gradient <- as.matrix(focal(raster(m), matrix(1, size, size), function(z) median(z, na.rm=T), pad = T, padValue = NA))
+  m_residuals <- m - m_gradient
+  
+  list(gradient = htmMatrixToXYV(xx, yy, m_gradient, x$mi),
+       residuals = htmMatrixToXYV(xx, yy, m_residuals, x$mi))
+}
+
+htmXYVtoMatrix <- function(xx, yy, val, nx, ny) {
+  m = matrix(nrow=ny, ncol=nx)
   mi = m 
   for(i in seq(1:length(val))) {
-    m[xx[i],yy[i]] <- val[i]
-    mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
+    m[yy[i],xx[i]] <- val[i]
+    mi[yy[i],xx[i]] <- i # remember where the data belongs in the original format
   }
-  
-  idsNA <- which(is.na(m)) # medianFilter cannot handle NA
-  m[idsNA] <- 0 
-  #print(head(m))
-  norm <- max(m) # medianFilter needs data between 0 and 1
-  m <- m / norm 
-  m_gradient = medianFilter(m, size)
-  m_gradient[idsNA] <- NA
-  m <- norm * m
-  m_gradient <- norm * m_gradient
-  m_residuals <- m - m_gradient
-  #print(head(m_gradient))
-  #ddd
-  
-  # convert back
-  # averaging for multi-sub-positions?
-  val_gradient = vector(length=length(val))
-  val_residual = vector(length=length(val))
-  for(i in seq(1:length(val))) {
-    val_gradient[mi[xx[i],yy[i]]] = m_gradient[xx[i],yy[i]]
-    val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
+  return(list(m = m, mi = mi))
+}
+
+htmMatrixToXYV <- function(xx, yy, m, mi) {
+  val = vector(length=length(xx))
+  for(i in seq(1:length(xx))) {
+    val[mi[yy[i],xx[i]]] = m[yy[i],xx[i]]
   }
-  
-  list(gradient = val_gradient,
-       residuals = val_residual)
+  return(val)
 }
 
 htmLocalZScore <- function(xx, yy, val, size) {
   
   print(paste("  local z_score filter with size", size))
   
-  # averaging for multi-sub-positions?
-  ny = htm@settings@visualisation$number_positions_y
+  
   nx = htm@settings@visualisation$number_positions_x
-  m = matrix(nrow=nx, ncol=ny)
-  mi = m 
-  for(i in seq(1:length(val))) {
-    m[xx[i],yy[i]] <- val[i]
-    mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
-  }
+  ny = htm@settings@visualisation$number_positions_y
+  x <- htmXYVtoMatrix(xx, yy, val, nx, ny) # averaging for multi-sub-positions?
+  m <- x$m
   
+  m_mean <- as.matrix(focal(raster(m), matrix(1, size, size), function(z) mean(z, na.rm=T), pad = T, padValue = NA))
+  m_meansqr <- as.matrix(focal(raster(m^2), matrix(1, size, size), function(z) mean(z, na.rm=T), pad = T, padValue = NA))
+  m_sd = sqrt( m_meansqr - m_mean^2 )
+  m_z = (m - m_mean) / m_sd
   
-  # prepare
-  print(head(m))
-  
-  idsNA <- which(is.na(m)) # ???medianFilter cannot handle NA
-  norm <- max(m) # ??medianFilter needs data between 0 and 1
-  m <- m / norm 
-  
-  # filter
-  f = makeBrush(size, shape='box')
-  f = f/sum(f)
-  # Mean = E(X)
-  # Variance = E(X^2)-E(X)^2
-  # Z-Score = (Xi - E(X)) / Sqrt(E(X^2)-E(X)^2)
-  
-  m_avg = filter2(m, f)
-  m_sd = sqrt( filter2(m^2, f) - m_avg^2 )
-  m_z = (m - m_avg) / m_sd
-  
-  
-  m_avg <- norm * m_avg
-  m_sd <- norm * m_sd
-  m_z <- norm * m_z
+  #print("before")
+  #print(m[1:10,1:6])
+  #print("avg")
+  #print(m_mean[1:10,1:6])
+  #print("sd")
+  #print(m_sd[1:10,1:6])
+  #print("z")
+  #print(m_z[1:10,1:6])
+  #ddd
 
-  print(head(m_avg))
-  print(head(m_sd))
-  print(head(m_z))
-  ddd
-  
-  # convert back
-  # averaging for multi-sub-positions?
-  # todo: put into a function!
-  val_avg = vector(length=length(val))
-  val_sd = vector(length=length(val))
-  val_z = vector(length=length(val))
-  for(i in seq(1:length(val))) {
-    val_avg[mi[xx[i],yy[i]]] = m_avg[xx[i],yy[i]]
-    val_sd[mi[xx[i],yy[i]]] = m_sd[xx[i],yy[i]]
-    val_z[mi[xx[i],yy[i]]] = m_z[xx[i],yy[i]]
-  }
-  
-  list(avg = val_avg,
-       sd = val_sd,
-       z = val_z)
+  list(avg = htmMatrixToXYV(xx, yy, m_mean, x$mi),
+       sd = htmMatrixToXYV(xx, yy, m_sd, x$mi),
+       z = htmMatrixToXYV(xx, yy, m_z, x$mi))
 }
 
 
