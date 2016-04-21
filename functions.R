@@ -1462,15 +1462,21 @@ htmNormalization <- function(htm) {
 
   
   if( gradient_correction %in% c("z_score_5x5")) {
+    # Mean = E(X)
+    # Variance = E(X^2)-E(X)^2
+    # Z-Score = (Xi - E(X)) / Sqrt(E(X^2)-E(X)^2)
     
-    print(paste("  median filter of", input))
+    print(paste("  5x5 z-score filter of", input))
     
     # also store the background
-    gradient = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__gradient__"),measurement)
-    manipulation <- paste0(manipulation,gradient_correction,"__residuals__")
+    standard_deviation = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__standard_deviation_5x5__"),measurement)
+    mean_value = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__mean_5x5__"),measurement)
+    manipulation <- paste0(manipulation,"__",gradient_correction)
     output = paste0("HTM_norm",manipulation,measurement)
     
     data[[output]] = rep(NA,nrow(data))
+    data[[standard_deviation]] = rep(NA,nrow(data))
+    data[[mean_value]] = rep(NA,nrow(data))
     
     for(experiment in experiments) {
       
@@ -1483,8 +1489,10 @@ htmNormalization <- function(htm) {
   
       mp = htmLocalZScore(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
       
-      data[indices_all, output] = mp$residuals
-      data[indices_all, gradient] = mp$gradient
+      data[indices_all, mean_value] = mp$avg
+      data[indices_all, standard_deviation] = mp$sd
+      data[indices_all, output] = mp$z
+      
       
     } # experiment loop
     
@@ -2234,6 +2242,8 @@ htmTreatmentSummary <- function(htm) {
       
     }
   
+  
+  
   #ctrls <- htm@settings@ctrlsNeg
   negative_ctrl <- c(htmGetListSetting(htm,"statistics","negativeControl"))
   positive_ctrl <- c(htmGetListSetting(htm,"statistics","positiveControl"))
@@ -2245,6 +2255,10 @@ htmTreatmentSummary <- function(htm) {
   print(experiments)
   print("");print(paste("Number of Treatments:",length(treatments)))
   print("");print(paste("Negative Control:",negative_ctrl))
+  print("");print(paste("Raw score column:",well_raw_score))
+  print("");print(paste("Minus_mean_ctrls score column:",wellMinusMeanCtrlScores))
+  
+  
   print(""); print("")
   
   # check whether we know everything            
@@ -2279,6 +2293,7 @@ htmTreatmentSummary <- function(htm) {
                         #ANOVA_estimate=rep(NA,numEntries), 
                         #ANOVA_std_error=rep(NA,numEntries),
                         median__z_score=rep(NA,numEntries),
+                        median__raw_score=rep(NA,numEntries),
                         median__robust_z_score=rep(NA,numEntries),
                         #mean_of_controls=rep(NA,numEntries),
                         measurement__images=rep(NA,numEntries),
@@ -2344,12 +2359,13 @@ htmTreatmentSummary <- function(htm) {
         
       if(withinReplMethod=="mean_of_wells") {
         z_scores <- tapply(htm@wellSummary[idsOK,well_z_score],htm@wellSummary$experiment[idsOK],mean)
-        robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],mean)  
+        raw_scores <- tapply(htm@wellSummary[idsOK,well_raw_score],htm@wellSummary$experiment[idsOK],mean)
+        robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],mean)
       } else if(withinReplMethod=="median_of_wells") {  
         z_scores <- tapply(htm@wellSummary[idsOK,well_z_score],htm@wellSummary$experiment[idsOK],median)
+        raw_scores <- tapply(htm@wellSummary[idsOK,well_raw_score],htm@wellSummary$experiment[idsOK],median)
         robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],median)    
       }  
-      
       
       # *****************
       # T-test positions
@@ -2436,15 +2452,12 @@ htmTreatmentSummary <- function(htm) {
       i=i+1
       results$treatment[i] <- htm@wellSummary$treatment[ids[1]]
       results$measurement__positions[i] <- wellMinusMeanCtrlScores 
-      #results$ANOVA_estimate[i] <- estimate
-      #results$ANOVA_std_error[i] <- stderror        
-      #results$ANOVA_pValue[i] <- p_value
-      #results$ANOVA_signCode[i] <- signCode
       results$t_test__positions__p_value[i] = t_test__positions__p_value
       results$t_test__positions__signCode[i] = t_test__positions__signCode
       results$t_test__positions__estimate[i] = t_test__positions__estimate
       results$t_test__positions__contributing_replicates[i] = t_test__positions__contributing_replicates
       results$median__z_score[i] <- median(z_scores)
+      results$median__raw_score[i] <- median(raw_scores)
       results$median__robust_z_score[i] <- median(robust_z_scores) 
       #results$mean_of_controls[i] <- mean_of_ctrls
       results$controls[i] <- paste(negative_ctrl,collapse=" ")
@@ -2864,7 +2877,7 @@ htmMedian <- function(xx, yy, val, size) {
 
 htmLocalZScore <- function(xx, yy, val, size) {
   
-  print(paste("  median filter with size", size))
+  print(paste("  local z_score filter with size", size))
   
   # averaging for multi-sub-positions?
   ny = htm@settings@visualisation$number_positions_y
@@ -2876,40 +2889,50 @@ htmLocalZScore <- function(xx, yy, val, size) {
     mi[xx[i],yy[i]] <- i # remember where the data belongs in the original format
   }
   
+  
   # prepare
-  idsNA <- which(is.na(m)) # medianFilter cannot handle NA
-  #m[idsNA] <- 0 
-  #print(head(m))
-  norm <- max(m) # medianFilter needs data between 0 and 1
+  print(head(m))
+  
+  idsNA <- which(is.na(m)) # ???medianFilter cannot handle NA
+  norm <- max(m) # ??medianFilter needs data between 0 and 1
   m <- m / norm 
   
   # filter
-  # var = avg[(mean-xi)^2] = avg[mean^2-2*mean*xi+xi^2] = avg[mean^2] - 2*avg[mean]^2 + avg[xi^2] = avg[xi^2] - avg[xi]^2
-  f = makeBrush(7, shape='disc')
+  f = makeBrush(size, shape='box')
   f = f/sum(f)
+  # Mean = E(X)
+  # Variance = E(X^2)-E(X)^2
+  # Z-Score = (Xi - E(X)) / Sqrt(E(X^2)-E(X)^2)
+  
   m_avg = filter2(m, f)
-  m_square
+  m_sd = sqrt( filter2(m^2, f) - m_avg^2 )
+  m_z = (m - m_avg) / m_sd
   
   
-  m_gradient = medianFilter(m, size)
-  m_gradient[idsNA] <- NA
-  m <- norm * m
-  m_gradient <- norm * m_gradient
-  m_residuals <- m - m_gradient
-  #print(head(m_gradient))
-  #ddd
+  m_avg <- norm * m_avg
+  m_sd <- norm * m_sd
+  m_z <- norm * m_z
+
+  print(head(m_avg))
+  print(head(m_sd))
+  print(head(m_z))
+  ddd
   
   # convert back
   # averaging for multi-sub-positions?
-  val_gradient = vector(length=length(val))
-  val_residual = vector(length=length(val))
+  # todo: put into a function!
+  val_avg = vector(length=length(val))
+  val_sd = vector(length=length(val))
+  val_z = vector(length=length(val))
   for(i in seq(1:length(val))) {
-    val_gradient[mi[xx[i],yy[i]]] = m_gradient[xx[i],yy[i]]
-    val_residual[mi[xx[i],yy[i]]] = m[xx[i],yy[i]] - m_gradient[xx[i],yy[i]] 
+    val_avg[mi[xx[i],yy[i]]] = m_avg[xx[i],yy[i]]
+    val_sd[mi[xx[i],yy[i]]] = m_sd[xx[i],yy[i]]
+    val_z[mi[xx[i],yy[i]]] = m_z[xx[i],yy[i]]
   }
   
-  list(gradient = val_gradient,
-       residuals = val_residual)
+  list(avg = val_avg,
+       sd = val_sd,
+       z = val_z)
 }
 
 

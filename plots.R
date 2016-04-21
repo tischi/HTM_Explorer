@@ -1018,6 +1018,23 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     }
     ids <- order(data$medians,na.last=NA)
   }
+  if(sorting=="mean value") {
+    print("  applying mean sorting")
+    #print(unique(factor(data[[cx]])))
+    ids_cx = split(1:nrow(data),data[[cx]])
+    data$means = rep(NA,nrow(data))
+    for(ids in ids_cx) {    
+      #values = subset(data[ids,],qc[ids]==1,select=cy)[[1]]
+      #print(values)
+      if(!is.null(qc)) {
+        values = data[ids,cy][which(qc[ids]==1)]
+      } else {
+        values = data[ids,cy]
+      }
+      data$means[ids] = rep(mean(values, na.rm = T),length(ids))
+    }
+    ids <- order(data$means,na.last=NA)
+  }
   
   
   # add jitter to sorted data
@@ -1203,7 +1220,7 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     if(colorizeTreatments == T) {
       print("  putting legend")
       treatments <- treatments[ids]
-      legend("topright", inset=c(0,0), legend = unique(treatments), col=1:length(treatments), pch=16, bty="n")
+      legend("topleft", inset=c(0,0), legend = unique(treatments), bg="white", col=1:length(treatments), pch=16, bty="n")
       #min(jp.x), max(jp.y), 
     }
     
@@ -1630,7 +1647,7 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     } else {
       .colors = data[[colorize]]
     }
-    col_pal <- rainbow(length(unique(htm@data[[colorize]])))
+    col_pal <- rainbow(length(unique(data[[colorize]])))
     .colors = col_pal[factor(.colors)]
   } else {
     .colors = rep(1, length(vx))
@@ -1642,14 +1659,12 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
       pchQC = ifelse(qc==1, 16, 4)
     } else {  # remove data points that did not pass QC
-      vxTmp = vx[which(qc==1)]
-      vyTmp = vy[which(qc==1)]
-      dataTmp = data[which(qc==1),]
-      colorsTmp = .colors[which(qc==1)]
-      .colors = colorsTmp
-      vx = vxTmp
-      vy = vyTmp
-      data = dataTmp
+      print("  not showing data points that failed QC")
+      vx = vx[which(qc==1)]
+      vy = vy[which(qc==1)]
+      data = data[which(qc==1),]
+      .colors = .colors[which(qc==1)]
+      treatments = treatments[which(qc==1)]
       qc <- rep(1,length(vx))
       pchQC = rep(16, length(vx))
     }
@@ -1692,8 +1707,9 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
       vxMean = tapply(vx[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
       vyMean = tapply(vy[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
       colorsMean = tapply(.colors[which(qc==1)], factors[which(qc==1)], function(z) {z[1]})
+      
       points(vxMean, vyMean, pch = 16, type = type, cex = 5*dotsize, main="", col=colorsMean)
-      cat("\nMean values:")
+      cat("\nMean values:\n")
       print(vxMean)
       print(vyMean)
       
@@ -1728,8 +1744,9 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     }
     
     
-    if(colorize=="treatment") {
-      legend("topright",legend = levels(factor(treatments)),col=col_pal,pch=16)
+    if( colorize != "None selected") {
+      print("  putting legend")
+      legend("topleft",legend = levels(factor(treatments)), bg="white", col=col_pal,pch=16)
       # x=max(vx,na.rm=T),y=max(vy,na.rm=T),
     }
     

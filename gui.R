@@ -1007,37 +1007,12 @@ guiHandler_JitterPlot_Data <- function(h,...){
   
   w <- gwindow(paste("Jitter Plot"), visible = F)
   
-  if (htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)=="None selected")  {
-    htmSetListSetting(htm,"visualisation","jitterPlot_datatype","images",gui=T)  
-  }
-  
-  
-  tmp <- ggroup(horizontal = TRUE, container=w)
-  
-  htmSetListSetting(htm, "visualisation","jitterPlot_datatype","images",gui=T)
-
-  datatype = htmGetListSetting(htm,"visualisation","jitterPlot_datatype",gui=T)
-  print(paste("datatype",datatype))
-
-  if(datatype=="images") columns <- sort(c("None selected",colnames(htm@data)))      
-  if(datatype=="objects") columns <- sort(c("None selected",colnames(htm@objectdata)))
-  if(datatype=="positions") columns <-  sort(c("None selected",colnames(htm@wellSummary)))
-  
+  columns <- sort(c("None selected",colnames(htm@data)))
   experiments <- NULL
   treatments <- NULL
   if(!is.null(htm@settings@columns$experiment)) experiments <- sort(unique(htm@data[[htm@settings@columns$experiment]]))
   if(!is.null(htm@settings@columns$treatment)) treatments <- sort(unique(htm@data[[htm@settings@columns$treatment]]))
-  
-  #} else if(datatype=="objects") {
-  #  columns <- sort(colnames(htm@objectdata))
-  #  experiments <- sort(unique(htm@objectdata[[htm@settings@columns$experiment]]))
-  #  treatments <- sort(unique(htm@objectdata[[htm@settings@columns$treatment]]))    
-  #} else if(datatype=="positions") {
-  #  columns <- sort(colnames(htm@wellSummary))
-  #  experiments <- sort(unique(htm@wellSummary$experiment))
-  #  treatments <- sort(unique(htm@wellSummary$treatment))
-  #}
-  
+
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Label axis:  ", container=gp)
@@ -1067,11 +1042,11 @@ guiHandler_JitterPlot_Data <- function(h,...){
   gp <- ggroup(horizontal = T, container=w)
   glabel("Experiment selection:  ", container=gp)
   guiExpSubset <- gcombobox(c("None selected", experiments), 
-                  selected = htmGetListSetting(htm,"visualisation","jitterPlotExpSubset",gui=T), 
-                  container = gp, 
-                  handler = function(h,...){
-                    htmSetListSetting(htm,"visualisation","jitterPlotExpSubset",svalue(h$obj),gui=T)
-                  })
+                            selected = htmGetListSetting(htm,"visualisation","jitterPlotExpSubset",gui=T), 
+                            container = gp, 
+                            handler = function(h,...){
+                              htmSetListSetting(htm,"visualisation","jitterPlotExpSubset",svalue(h$obj),gui=T)
+                            })
    
   glabel(" ", container=w)
   gui_AddRemoveVectorSetting(setting="visualisation$treatmentSelectionForPlotting",
@@ -1083,7 +1058,12 @@ guiHandler_JitterPlot_Data <- function(h,...){
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Sorting:  ", container=gp)
-  guiSorting <- gcombobox(c("None selected","alphabetic","median value"), container=gp)
+  guiSorting <- gcombobox(c("None selected","alphabetic","median value","mean value"), 
+                          selected = htmGetListSetting(htm,"visualisation","jitterPlotSorting",gui=T), 
+                          container = gp, 
+                          handler = function(h,...){
+                            htmSetListSetting(htm,"visualisation","jitterPlotSorting",svalue(h$obj),gui=T)
+                          })
   
   gp <- ggroup(horizontal = T, container=w)
   glabel("Compute t-test against:  ", container=gp)
@@ -2163,7 +2143,7 @@ guiHandler_Normalisation <- function(h,...){
   gui_ListSettingDropdown(text = "  Batch-wise spatial gradient correction  ",
                           setting = "statistics",
                           key = "gradient_correction",
-                          choices = c("None selected", "median_polish", "median_7x7", "median_5x5", "median_3x3"),
+                          choices = c("None selected", "median_polish", "median_7x7", "median_5x5", "median_3x3", "z_score_5x5"),
                           default = "None selected",
                           container = w)
   
