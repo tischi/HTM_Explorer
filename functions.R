@@ -1424,10 +1424,8 @@ htmNormalization <- function(htm) {
     
     print(paste("  median filter of", input))
     
-    # also store the background
-    gradient = paste0("HTM_norm",paste0(manipulation,gradient_correction,"__gradient__"),measurement)
-    
-    manipulation <- paste0(manipulation,gradient_correction,"__residuals__")
+    gradient = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__gradient__"),measurement)
+    manipulation <- paste0(manipulation,"__",gradient_correction,"__residuals__")
     output = paste0("HTM_norm",manipulation,measurement)
     
     data[[output]] = rep(NA,nrow(data))
@@ -1471,10 +1469,10 @@ htmNormalization <- function(htm) {
     print(paste("  5x5 z-score filter of", input))
     
     # also store the background
-    standard_deviation = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__standard_deviation__"),measurement)
-    mean_value = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__mean__"),measurement)
-    manipulation <- paste0(manipulation,"__",gradient_correction)
-    output = paste0("HTM_norm",manipulation,"__",measurement)
+    standard_deviation = paste0("HTM_norm",paste0(manipulation,"__5x5_standard_deviation__"),measurement)
+    mean_value = paste0("HTM_norm",paste0(manipulation,"__5x5_mean__"),measurement)
+    manipulation <- paste0(manipulation,"__5x5_z_score__")
+    output = paste0("HTM_norm",manipulation,measurement)
     
     data[[output]] = rep(NA,nrow(data))
     data[[standard_deviation]] = rep(NA,nrow(data))
@@ -2211,6 +2209,305 @@ htmWellSummary <- function(htm) {
   return(htm@wellSummary)
     
 }
+
+
+
+htmTreatmentSummary_Data <- function(htm) {
+  
+  print("")
+  print("Treatment Summary:")
+  print("******************")
+  print("")
+  
+  # get all necessary information
+  data <- htm@data
+  measurement <- htmGetListSetting(htm,"statistics","measurement")
+  experiments <- sort(unique(data[[htm@settings@columns$experiment]]))
+  experiments_to_exclude <- htmGetVectorSettings("statistics$experiments_to_exclude")
+  negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  #transformation <- htmGetListSetting(htm,"statistics","transformation")
+  treatments <- sort(unique(data[[htm@settings@columns$treatment]]))
+  colObjectCount <- htmGetListSetting(htm,"statistics","objectCount")
+  
+  #ctrls <- htm@settings@ctrlsNeg
+  negative_ctrl <- c(htmGetListSetting(htm,"statistics","negativeControl"))
+  positive_ctrl <- c(htmGetListSetting(htm,"statistics","positiveControl"))
+  
+  # output
+  print("");print("Experiments:")
+  print(experiments)
+  print("");print(paste("Number of treatments:",length(treatments)))
+  print("");print(paste("Negative control:",negative_ctrl))
+  print("");print(paste("Positive control:",positive_ctrl))
+  print("");print(paste("Measurement:",measurement))
+  print(""); print("")
+  
+  if(!(measurement %in% names(data))) {
+    print(paste("ERROR: measurement",measurement,"does not exist in data"))
+    return(0)
+  }
+  if(!(colObjectCount %in% names(data))) {
+    print(paste("ERROR: object count",measurement,"does not exist in data"))
+    return(0)
+  }
+  
+  
+  numEntries = length(treatments)
+  
+  results <- data.frame(measurement=rep(measurement,numEntries),
+                        controls=rep(negative_ctrl,numEntries),  
+                        treatment=rep(NA,numEntries),
+                        batches_and_means = rep(NA,numEntries),
+                        
+                        median__mean_within_batches=rep(NA,numEntries),
+          
+                        t_test__estimate=rep(NA,numEntries),
+                        t_test__p_value=rep(NA,numEntries),
+                        t_test__signCode=rep(NA,numEntries),
+                        
+                        #z_score__allBatches=rep(NA,numEntries),
+                        #robust_z_score__allBatches=rep(NA,numEntries),
+                        
+                        mean_number_of_objects_per_image=rep(NA,numEntries),
+
+                        numObjectsOK=rep(NA,numEntries),
+                        numImagesOK=rep(NA,numEntries), 
+                        numReplicatesOK=rep(NA,numEntries),
+                        #numPositionsOK=rep(NA,numEntries),
+                        #numPositions=rep(NA,numEntries),
+                        stringsAsFactors = FALSE
+  )
+  
+
+  
+  ###################################
+  # Compute stats
+  ###################################
+  
+  print("Computing statistics...")
+  
+  ids_treatments = split(1:nrow(data), data[[htm@settings@columns$treatment]])
+  
+  i=0
+  
+  for(ids in ids_treatments) {
+    
+    # ********************************
+    # T-test  
+    # ********************************
+    
+    # treatment name
+    treat <- data[ids[1],htm@settings@columns$treatment]
+    
+    # init
+    t_test__p_value = NA
+    t_test__signCode = NA
+    t_test__estimate = NA
+   
+    # compute
+    if(1) { #(treat %in% negative_ctrl)) {
+      
+      # get experiments containing current treatment
+      exps <- unique(data[ids,htm@settings@columns$experiment])
+      
+      d <- subset(data, 
+                  (data[[htm@settings@columns$treatment]] %in% c(treat,negative_ctrl))
+                  & (data[[htm@settings@columns$experiment]] %in% exps) 
+                  & !(data[[htm@settings@columns$experiment]] %in% htmGetVectorSettings("statistics$experiments_to_exclude")) 
+                  & (data[["HTM_qc"]]==1)
+                  & !(is.na(data[[measurement]])), 
+                  select = c(htm@settings@columns$treatment,measurement,htm@settings@columns$experiment,colObjectCount))
+      
+      names(d)[names(d)==measurement] <- "value"
+      names(d)[names(d)==htm@settings@columns$treatment] <- "treatment"
+      names(d)[names(d)==htm@settings@columns$experiment] <- "experiment"
+      names(d)[names(d)==colObjectCount] <- "count"
+      
+      d$treatment = ifelse(d$treatment %in% negative_ctrl, "control", d$treatment)
+      
+      
+      if ( (sum(d$treatment=="control")>1) & (sum(d$treatment==treat)>1) ) {
+        
+        #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
+        d$treatment <- as.factor(d$treatment)
+        d$treatment <- relevel( d$treatment, "control" ) # control must be the 1st level for the linear model
+        t <- t.test(d$value ~ d$treatment)  # as there typically is enough data no equal variance is assumed
+        
+        nBlocks = length(unique(d$experiment)) 
+        n = nrow(d)
+        #print(2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 ))
+        
+        t_test__p_value <- 2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 )
+        t_test__estimate <- t$estimate[2]
+        t_test__signCode <- ifelse(t_test__p_value<0.001,"***",
+                                   ifelse(t_test__p_value<0.01,"**",
+                                          ifelse(t_test__p_value<0.05,"*",
+                                                 ifelse(t_test__p_value<0.1,"."," "
+                                                 ))))
+      }
+      
+      d_ctrl = subset(d, d$treatment=="control" )
+      means_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, mean)
+        
+      if(!(treat %in% negative_ctrl)) {
+        d_treated = subset(d, d$treatment==treat )
+      } else {
+        d_treated = subset(d, d$treatment=="control")
+      }
+        
+      #z_score__allBatche = (mean(treatedValues$value) - mean(ctrlValues$value)) / sd(ctrlValues$value)
+      #robust_z_score__allBatches = (median(treatedValues$value) - median(ctrlValues$value)) / mad(ctrlValues$value)
+        
+      means_treated <- tapply(d_treated$value, d_treated$experiment, mean)
+      batches_and_means = paste0(paste(names(means_treated),collapse=";"),"__",paste(means_treated,collapse=";"))
+      median__mean_within_batches = median(means_treated)
+        
+        
+        #raw_scores <- tapply(htm@wellSummary[idsOK,well_raw_score],htm@wellSummary$experiment[idsOK],mean)
+        #robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],mean)
+        
+      
+    #} # if not negative control
+    
+    
+    #print(treat)
+    #print(t_test__p_value)
+    #print(t_test__estimate)
+    
+    i = i + 1
+    results$treatment[i] <- treat
+    results$t_test__p_value[i] = t_test__p_value
+    results$t_test__signCode[i] = t_test__signCode
+    results$t_test__estimate[i] = t_test__estimate
+    results$median__mean_within_batches[i] = median__mean_within_batches
+    results$batches_and_means[i] = batches_and_means
+    
+    results$numObjectsOK[i] = sum(d_treated$count)
+    results$numImagesOK[i] = nrow(d_treated)
+    results$numReplicatesOK[i]= length(unique(d_treated$experiment))
+    
+    results$mean_number_of_objects_per_image[i] = results$numObjectsOK[i]/results$numImagesOK[i]
+    
+    
+    #print(head(results))
+    }
+    
+    
+  }  # treatment loop   
+    
+
+  print("")
+  print("done. Created Treatment Summary Table.")
+  
+  
+  # Diagnostics 
+  
+  #hist(res)
+  #dev.new()
+  #qqnorm(res)
+  #qqline(res)
+  #print(wellScoreForANOVA)
+  
+  # display controls plot: raw well scores
+  #print("Plot control scores...")
+  #htmJitterplot(htm, cx="experiment", cy=well_raw_score, .ylab=well_raw_score, datatype="wells", 
+  #              treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+  #              showMedian = F, showMean = T)
+  
+  # display controls plot: batch corrected well scores
+  #print("Plot batch corrected control scores...")
+  #htmJitterplot(htm, cx="experiment", cy=wellMinusMeanCtrlScores, .ylab=wellMinusMeanCtrlScores, datatype="wells", 
+  #              treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+  #              showMedian = F, showMean = T)
+  
+  
+  # save controls plot
+  #  htmJitterplot(htm, cx="experiment", cy=wellScoreForANOVA, .ylab=wellScoreForANOVA, datatype="wells", 
+  #                treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"),
+  #                showMedian = F, showMean = T, save2file = T, newdev = F)
+  
+  # save histogram as plot
+  #  print(paste("histo:",wellMinusMeanCtrlScores))
+  #  htmHisto(wellMinusMeanCtrlScores, datatype="wells", treatmentSubset = htmGetListSetting(htm,"statistics","negativeControl"), save2file=T)
+  
+  #htm@wellSummary$exp_treat = paste(htm@wellSummary$experiment,htm@wellSummary$treatment,sep="_")
+  #edit(htm@wellSummary$exp_treat)
+  #print(wellMinusMeanCtrlScores)
+  # todo: plot only if makes sense
+  #htmJitterplot(htm, cx="exp_treat", cy=wellMinusMeanCtrlScores, .ylab=wellMinusMeanCtrlScores, datatype="wells", 
+  #                treatmentSubset = c(htmGetListSetting(htm,"statistics","negativeControl"),htmGetListSetting(htm,"statistics","positiveControl")),
+  #                showMedian = F, showMean = T, save2file = F, newdev = F)
+  
+  
+  #####
+  
+  if(positive_ctrl != "None selected") {
+    
+    print("")
+    print("")
+    print("Checking positive and negative control separation in each batch:")
+    print("")
+    print(paste("Measurement:",measurement))
+    print(paste("Positive control:",positive_ctrl))
+    print(paste("Negative control:",negative_ctrl))
+    print("")
+    
+    z_scores = c()
+    
+    for(exp in experiments) {
+      
+      d <- subset(data, (data[[htm@settings@columns$experiment]]==exp) & (data$HTM_qc==1) & !(is.na(data[[measurement]])), select = c(htm@settings@columns$treatment, measurement))
+      names(d)[names(d) == measurement] <- "value"
+      names(d)[names(d) == htm@settings@columns$treatment] <- "treatment"
+      
+      d_neg <- subset(d,d$treatment == negative_ctrl)
+      mean_neg = mean(d_neg$value)
+      sd_neg = sd(d_neg$value)
+      n_neg = length(d_neg$value)
+      
+      d_pos <- subset(d,d$treatment == positive_ctrl)
+      mean_pos = mean(d_pos$value)
+      sd_pos = sd(d_pos$value)
+      n_pos = length(d_pos$value)
+      
+      #print(paste(min_neg,max_neg,mean_pos,sd_pos))
+      #probability_of_pos_outside_neg = 1 - integrate( function(x) {dnorm(x,mean=mean_pos,sd=sd_pos)}, min_neg, max_neg)$value
+      z_score = (mean_pos-mean_neg) / sd_neg
+      z_scores = c(z_scores, z_score)
+      #t_value = (mean_pos-mean_neg) / sqrt(sd_pos^2+sd_neg^2)
+      
+      
+      #print(paste0(exp,"  N_neg: ",n_neg,"  N_pos: ",n_pos,"  Probability: ",round(probability_of_pos_outside_neg,3))) #,"  t-value: ",t_value))
+      #quality = ifelse(abs(z_score)<1,"XX",
+      #                 ifelse(abs(z_score)<2,"X",""
+      #                               ))
+      quality = ""
+      
+      if ( exp %in% htmGetVectorSettings("statistics$experiments_to_exclude") ) {
+        comment = "(Excluded)  " 
+      } else {
+        comment = ""
+      }
+      
+      print(paste0(comment,exp,"; N_neg: ",n_neg,"; N_pos: ",n_pos,"; mean z-score of positive controls: ",round(z_score,3)," ",quality)) #,"  t-value: ",t_value))
+      
+    }
+  
+    print("")
+    print(paste("z-scores (N, mean, sd):",length(z_scores),mean(z_scores, na.rm=T),sd(z_scores, na.rm=T)))
+    
+  }
+  
+  
+  # sorted hit-list with significance level * ** ***
+  # plot colored according to significance level
+  #with hits marked as sign
+  
+  results_ordered <- results[order(results$t_test__p_value),]
+  return(results_ordered)
+  
+}
+
 
 
 

@@ -774,7 +774,6 @@ guiHandler_JitterPlot_Help <- function(h,...) {
   
 } 
 
-
 guiHandler_Heatmap_Data <- function(h, ...) {
   
   if(is.null(htm@settings@columns$experiment)) {
@@ -2103,8 +2102,6 @@ guiHandler_AverageAndNormaliseMultipleFeatures <- function(h,...){
 # - normalisation is against all negative control rows in the same experimental batch
 #
 
-
-
 guiHandler_Normalisation <- function(h,...){
   
   #
@@ -2241,8 +2238,109 @@ guiHandler_Normalisation_Options <- function(h,...){
   
 }
 
+#
+# Treatment summary
+#
+
+guiHandler_TreatmentSummary <- function(h,...){
+  
+  #
+  # CHECKS
+  #
+  
+  if(is.null(htm@settings@columns$treatment)) {
+    gmessage("You need to first specify the treatment column [Main..Configure..Assay columns]!")
+    return(NULL)
+  }
+  
+  if(is.null(htm@settings@columns$experiment)) {
+    gmessage("You need to first specify the experiment column [Main..Configure..Assay columns]!")
+    return(NULL)
+  }
+  
+  
+  w <- gwindow("Treatment summary", visible=F)
+  
+  htm <- get("htm", envir = globalenv())
+  
+  gui_AddRemoveVectorSetting(setting="statistics$featureSelection",
+                             name="  Measurements to be analyzed  ",
+                             choices = colnames(htm@data),
+                             container = w, showSelected=F)  
+  
+  gui_AddRemoveVectorSetting(name="  Experiments to be excluded  ",
+                             setting="statistics$experiments_to_exclude",
+                             choices = c(sort(unique(htm@data[[htm@settings@columns$experiment]]))),
+                             container = w, showSelected=F)
+
+  gui_ListSettingDropdown(text = "  Negative control  ",
+                          setting = "statistics",
+                          key = "negativeControl",
+                          choices = c("None selected", "all treatments", sort(unique(htm@data[[htm@settings@columns$treatment]]))),
+                          default = colnames(htm@data)[1],
+                          container = w)
+  
+  gui_ListSettingDropdown(text = "  Positive control  ",
+                          setting = "statistics",
+                          key = "positiveControl",
+                          choices = c("None selected", sort(unique(htm@data[[htm@settings@columns$treatment]]))),
+                          default = "None selected",
+                          container = w)
+  
+  gui_ListSettingDropdown(text = "  Number of objects per image:  ",
+                          setting = "statistics",
+                          key = "objectCount",
+                          choices = c("None selected",colnames(htm@data)),
+                          default = "None selected",
+                          container = w)
+  
+  
+
+  obj <- glabel("   ", container = w)
+  gg <- ggroup(horizontal = TRUE, container=w, expand=T)
+  
+  obj <- gbutton(" Analyse ", container = gg, handler = function(h,...) {
+    
+    measurements = htmGetVectorSettings("statistics$featureSelection") 
+    
+    for (measurement in measurements) {
+      
+      # QC
+      htm <- get("htm", envir = globalenv())
+      htm <- htmApplyQCs(htm)
+      assign("htm", htm, envir = globalenv())
+      
+      print(measurement)
+      htmSetListSetting(htm,"statistics","measurement",measurement,gui=T)
+      
+      # normalisation
+      htm <- get("htm", envir = globalenv())
+      htm@treatmentSummary  <- htmTreatmentSummary_Data(htm)
+      assign("htm", htm, envir = globalenv())
+      
+      # save treatment summary
+      path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",measurement,".csv"))
+      htmSaveDataTable(htm, "treatmentSummary", path)
+      
+    }
+    
+    
+  })
+  
+  obj <- glabel("   ", container = gg) 
+  gbutton(" Help ", container = gg, handler = function(h,...) { guiShowHelpFile("statistical_analysis.md") })
+  
+  glabel("    ", container=gg)
+  obj <- gbutton(" Close ", container = gg, handler = function(h,...) {
+    dispose(w)
+  })
+  
+  visible(w) <- T
+  
+}
 
 
+# old
 guiHandler_AverageAndNormalise <- function(h,...){
   
   if(is.null(htm@settings@columns$treatment)) {
@@ -2392,8 +2490,7 @@ guiHandler_AverageAndNormalise <- function(h,...){
   
 }
 
-
-
+# old
 guiHandler_AverageAndNormalise_Options <- function(h,...){
 
   w <- gwindow("Statistical Analysis", visible=F)
@@ -2461,37 +2558,26 @@ guiHandler_htmSaveSetttings <- function(h,...){
 mbl <- list()
 
 #mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
-mbl$Main$"Load image table"$handler = guiHandler_LoadImageTable
-mbl$Main$"Load configuration"$handler = guiHandler_htmLoadSetttings
-mbl$Main$"Save configuration"$handler = guiHandler_htmSaveSetttings
-mbl$Main$Configure$"Assay columns"$handler = guiHandler_SetColumns
-mbl$Main$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
+mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
+mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
+mbl$Configure$Configure$"Assay columns"$handler = guiHandler_SetColumns
+mbl$Configure$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
 #mbl$Main$Configure$"Load config"$handler = guiHandler_htmLoadSetttings
-mbl$Main$Quit$handler = function(h,...) {dispose(w)}
-mbl$Main$Quit$icon = "quit"
-
-mbl$Plot$"Heatmap"$handler = guiHandler_Heatmap
-mbl$Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
-mbl$Plot$"Jitter plot"$handler = guiHandler_JitterPlot
+mbl$Configure$Quit$handler = function(h,...) {dispose(w)}
+mbl$Configure$Quit$icon = "quit"
 
 
-#mbl$Plot$"Treatment summary plot"$handler = guiHandler_TreatmentSummarySortedValuesPlot
-
-mbl$Analysis$"Assay overview"$handler = guiHandler_htmOverview
-mbl$Analysis$"Image QC"$handler = guiHandler_ImageQCs
-#mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
-mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
-
-mbl$Tables$"Image table"$"View"$handler = function(h,...) { edit(htm@data) }
-mbl$Tables$"Image table"$"Load"$handler = guiHandler_LoadImageTable
-mbl$Tables$"Image table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
-mbl$Tables$"Object Table"$"View"$handler = function(h,...) { edit(htm@objectdata) }
-mbl$Tables$"Object Table"$"Load"$handler = guiHandler_LoadObjectTable
-mbl$Tables$"Object Table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "objectdata", path)}
-mbl$Tables$"Position table"$"View"$handler = function(h,...) { edit(htm@wellSummary) }
-mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "wellSummary", path)}
-mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }
-mbl$Tables$"Treatment table"$"Save"$handler =  function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "treatmentSummary", path)}
+mbl$Main$"Load table"$handler =  guiHandler_LoadDataTable
+mbl$Main$"Table tools"$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTables
+mbl$Main$"Table tools"$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
+mbl$Main$"Table tools"$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
+mbl$Main$"Table tools"$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
+mbl$Main$"Quality control"$handler =  guiHandler_DataQCs
+mbl$Main$"Normalisation"$handler =  guiHandler_Normalisation
+mbl$Main$"Treatment summary"$handler =  guiHandler_TreatmentSummary
+mbl$Main$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
+mbl$Main$"Jitter plot"$handler = guiHandler_JitterPlot_Data
+mbl$Main$"Heatmap"$handler = guiHandler_Heatmap_Data
 
 mbl$Help$"About"$handler =  function(h,...) { guiShowHelpFile("version.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
@@ -2499,16 +2585,31 @@ mbl$Help$"Assay column configuration"$handler =  function(h,...) { guiShowHelpFi
 mbl$Help$"Visualisation settings"$handler =  function(h,...) { guiShowHelpFile("visualisation_settings.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
 
-mbl$Development$"Load table"$handler =  guiHandler_LoadDataTable
-mbl$Development$"Table tools"$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTables
-mbl$Development$"Table tools"$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
-mbl$Development$"Table tools"$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
-mbl$Development$"Table tools"$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
-mbl$Development$"Quality control"$handler =  guiHandler_DataQCs
-mbl$Development$"Normalisation"$handler =  guiHandler_Normalisation
-mbl$Development$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
-mbl$Development$"Jitter plot"$handler = guiHandler_JitterPlot_Data
-mbl$Development$"Heatmap"$handler = guiHandler_Heatmap_Data
+
+mbl$DO_NOT_USE_Plot$"Heatmap"$handler = guiHandler_Heatmap
+mbl$DO_NOT_USE_Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
+mbl$DO_NOT_USE_Plot$"Jitter plot"$handler = guiHandler_JitterPlot
+
+
+#mbl$Plot$"Treatment summary plot"$handler = guiHandler_TreatmentSummarySortedValuesPlot
+
+mbl$DO_NOT_USE_Analysis$"Assay overview"$handler = guiHandler_htmOverview
+mbl$DO_NOT_USE_Analysis$"Image QC"$handler = guiHandler_ImageQCs
+#mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
+mbl$DO_NOT_USE_Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
+
+#mbl$Tables$"Image table"$"View"$handler = function(h,...) { edit(htm@data) }
+#mbl$Tables$"Image table"$"Load"$handler = guiHandler_LoadImageTable
+#mbl$Tables$"Image table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
+#mbl$Tables$"Object Table"$"View"$handler = function(h,...) { edit(htm@objectdata) }
+#mbl$Tables$"Object Table"$"Load"$handler = guiHandler_LoadObjectTable
+#mbl$Tables$"Object Table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "objectdata", path)}
+#mbl$Tables$"Position table"$"View"$handler = function(h,...) { edit(htm@wellSummary) }
+#mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "wellSummary", path)}
+#mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }
+#mbl$Tables$"Treatment table"$"Save"$handler =  function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "treatmentSummary", path)}
+
+
 
 #mbl$Special$"Add columns"$handler = guiHandler_AddColumns
 
