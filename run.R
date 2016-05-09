@@ -1,5 +1,5 @@
 # path = "C:\\Users\\Christian Tischer\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
-# path = "C:\\Users\\almf\\Dropbox\\R\\HTM\\HTM_Explorer\\HTM_Explorer";setwd(path);source("run.R");
+# path = "\\\\almf\\almf\\software\\scripts\\R\\HTM_Explorer";setwd(path);source("run.R");
 # path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
 
 

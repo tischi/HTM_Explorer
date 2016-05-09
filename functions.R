@@ -2257,10 +2257,12 @@ htmTreatmentSummary_Data <- function(htm) {
   results <- data.frame(measurement=rep(measurement,numEntries),
                         controls=rep(negative_ctrl,numEntries),  
                         treatment=rep(NA,numEntries),
-                        batches_and_means = rep(NA,numEntries),
+                        batches = rep(NA,numEntries),
+                        means = rep(NA,numEntries),
+                        z_scores = rep(NA,numEntries),
+                        median__means = rep(NA,numEntries),
+                        median__z_scores = rep(NA,numEntries),
                         
-                        median__mean_within_batches=rep(NA,numEntries),
-          
                         t_test__estimate=rep(NA,numEntries),
                         t_test__p_value=rep(NA,numEntries),
                         t_test__signCode=rep(NA,numEntries),
@@ -2303,7 +2305,8 @@ htmTreatmentSummary_Data <- function(htm) {
     t_test__p_value = NA
     t_test__signCode = NA
     t_test__estimate = NA
-   
+    
+    
     # compute
     if(1) { #(treat %in% negative_ctrl)) {
       
@@ -2325,7 +2328,6 @@ htmTreatmentSummary_Data <- function(htm) {
       
       d$treatment = ifelse(d$treatment %in% negative_ctrl, "control", d$treatment)
       
-      
       if ( (sum(d$treatment=="control")>1) & (sum(d$treatment==treat)>1) ) {
         
         #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
@@ -2344,44 +2346,46 @@ htmTreatmentSummary_Data <- function(htm) {
                                           ifelse(t_test__p_value<0.05,"*",
                                                  ifelse(t_test__p_value<0.1,"."," "
                                                  ))))
-      }
-      
-      d_ctrl = subset(d, d$treatment=="control" )
-      means_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, mean)
+         
+        d_ctrl = subset(d, d$treatment=="control")
+        means_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, mean)
+        sds_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, sd)
         
+        d_treat = subset(d, d$treatment==treat)
+        means_treat <- tapply(d_treat$value, d_treat$experiment, mean)
+        
+        z_scores = (means_treat - means_ctrl) / sds_ctrl
+        median__z_scores = median(z_scores)
+        z_scores = paste(round(z_scores,2),collapse=";")
+        
+        }
+      
       if(!(treat %in% negative_ctrl)) {
         d_treated = subset(d, d$treatment==treat )
       } else {
         d_treated = subset(d, d$treatment=="control")
       }
         
-      #z_score__allBatche = (mean(treatedValues$value) - mean(ctrlValues$value)) / sd(ctrlValues$value)
-      #robust_z_score__allBatches = (median(treatedValues$value) - median(ctrlValues$value)) / mad(ctrlValues$value)
-        
+      # these  values need no negative control, that's why they are outside of above if-statement
       means_treated <- tapply(d_treated$value, d_treated$experiment, mean)
-      batches_and_means = paste0(paste(names(means_treated),collapse=";"),"__",paste(means_treated,collapse=";"))
-      median__mean_within_batches = median(means_treated)
-        
-        
-        #raw_scores <- tapply(htm@wellSummary[idsOK,well_raw_score],htm@wellSummary$experiment[idsOK],mean)
-        #robust_z_scores <- tapply(htm@wellSummary[idsOK,well_robust_z_score],htm@wellSummary$experiment[idsOK],mean)
+      batches = paste(names(means_treated),collapse=";")
+      means = paste(round(means_treated,3),collapse=";")
+      median__means = median(means_treated)
         
       
     #} # if not negative control
-    
-    
-    #print(treat)
-    #print(t_test__p_value)
-    #print(t_test__estimate)
-    
+      
+      
     i = i + 1
     results$treatment[i] <- treat
     results$t_test__p_value[i] = t_test__p_value
     results$t_test__signCode[i] = t_test__signCode
     results$t_test__estimate[i] = t_test__estimate
-    results$median__mean_within_batches[i] = median__mean_within_batches
-    results$batches_and_means[i] = batches_and_means
-    
+    results$median__means[i] = median__means
+    results$batches[i] = batches
+    results$z_scores[i] = z_scores
+    results$means[i] = means
+    results$median__z_scores[i] = median__z_scores
     results$numObjectsOK[i] = sum(d_treated$count)
     results$numImagesOK[i] = nrow(d_treated)
     results$numReplicatesOK[i]= length(unique(d_treated$experiment))
@@ -2389,7 +2393,8 @@ htmTreatmentSummary_Data <- function(htm) {
     results$mean_number_of_objects_per_image[i] = results$numObjectsOK[i]/results$numImagesOK[i]
     
     
-    #print(head(results))
+    print(head(results))
+    fff
     }
     
     
