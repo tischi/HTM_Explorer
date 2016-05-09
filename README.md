@@ -32,33 +32,19 @@ First, you need to install the free software R (you'll need a version > 3.0). It
 Make sure the Tcl/Tk libraries are part of the installation package; normally this is the case by default.
 
 
-### Installation of R packages ###
-
-In order to run the HTM Explorer you'll need to install a few R packages.
-
-Start R; within the R console window type:
-
-`install.packages("gWidgets")`
-
-`install.packages("gWidgetstcltk")`
-
-`install.packages("markdown")`
-
-Note: if you are using Windows 7 it may ask you whether it should install it as "personal libraries"...just say "yes"
-
-
-### Installation of the HTM Explorer ###
+### Installation of HTM Explorer ###
 
 Download [HTM Explorer](
 https://github.com/tischi/HTM_Explorer/archive/master.zip) and simply copy all the files somewhere onto your computer.
 
 
-### Starting the HTM Explorer ###
+### Starting HTM Explorer ###
 
 Start R and type below commands replacing `/path/to/` by the location of the HTM Explorer folder:
 
 `setwd("/path/to/HTM_Explorer-master"); source("run.R");`
 
+The first time you run HTM Explorer a few R packageswill be installed automatically. 
 Now you should see the graphical user interface popping up and you are ready to go. 
 
 ### More help on usage ###
