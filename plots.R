@@ -1177,7 +1177,7 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     
     #cat(paste("\n\njitter-plotting",cy,"vs.",cx,"\n"))
     
-    op <- par(mar=c(7.1, 4.1, 4.1, 2.1), xpd=TRUE) #par(mar = c(8,5,4,2) + 0.1) 
+    op <- par(mar=c(12.1, 4.1, 4.1, 2.1), xpd=TRUE) #par(mar = c(8,5,4,2) + 0.1) 
     
     dotsize = 0.5
     

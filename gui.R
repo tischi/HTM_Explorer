@@ -2557,16 +2557,6 @@ guiHandler_htmSaveSetttings <- function(h,...){
 
 mbl <- list()
 
-#mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
-mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
-mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
-mbl$Configure$Configure$"Assay columns"$handler = guiHandler_SetColumns
-mbl$Configure$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
-#mbl$Main$Configure$"Load config"$handler = guiHandler_htmLoadSetttings
-mbl$Configure$Quit$handler = function(h,...) {dispose(w)}
-mbl$Configure$Quit$icon = "quit"
-
-
 mbl$Main$"Load table"$handler =  guiHandler_LoadDataTable
 mbl$Main$"Table tools"$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTables
 mbl$Main$"Table tools"$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
@@ -2578,6 +2568,15 @@ mbl$Main$"Treatment summary"$handler =  guiHandler_TreatmentSummary
 mbl$Main$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
 mbl$Main$"Jitter plot"$handler = guiHandler_JitterPlot_Data
 mbl$Main$"Heatmap"$handler = guiHandler_Heatmap_Data
+
+#mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
+mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
+mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
+mbl$Configure$Configure$"Assay columns"$handler = guiHandler_SetColumns
+mbl$Configure$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
+#mbl$Main$Configure$"Load config"$handler = guiHandler_htmLoadSetttings
+mbl$Configure$Quit$handler = function(h,...) {dispose(w)}
+mbl$Configure$Quit$icon = "quit"
 
 mbl$Help$"About"$handler =  function(h,...) { guiShowHelpFile("version.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
