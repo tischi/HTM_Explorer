@@ -1345,28 +1345,39 @@ htmNormalization <- function(htm) {
   print(paste("Total data points",length(data$HTM_qc)))
   print(paste("Valid data points",sum(data$HTM_qc)))
   
-  manipulation <- ""
+  # init
+  manipulation <- "__"
   input <- measurement
   
+  # Log2
   if(transformation == "log2") {
     
-    print(paste("  log2 of", input))
+    print("")
+    print("Log2:")
+    print(paste("  Input:", input))
     
     # compute log transformation
     # create new column name
-    manipulation <- paste0(manipulation,"__log2__")
+    manipulation <- paste0(manipulation,"log2__")
     
     output = paste0("HTM_norm",manipulation,measurement)
-    data[[output]] <- log2(data[[input]]) 
+    
+    idsGtZero <- which(data[[input]]>0)
+    idsSmEqZero <- which(data[[input]]<=0)
+    data[idsGtZero,output] <- log2(data[idsGtZero,input]) 
+    data[idsSmEqZero,output] <- NaN
+    print(paste("  Output:", output))
+    print(paste("  Number of data points:",length(data[[input]])))
+    print(paste("  NaN's due to <=0:",length(idsSmEqZero)))
     
     # todo: this should be at a more prominent position
-    print("Replacing -Inf in log scores ******************************")
-    logScores = data[[output]]
-    finiteLogScores = subset(logScores,is.finite(logScores))
-    minimum = min(finiteLogScores)
-    idsInf = which(is.infinite(logScores))
-    logScores[idsInf] <- minimum
-    data[[output]] <- logScores
+    #print("Replacing -Inf in log scores ******************************")
+    #logScores = data[[output]]
+    #finiteLogScores = subset(logScores,is.finite(logScores))
+    #minimum = min(finiteLogScores)
+    #idsInf = which(is.infinite(logScores))
+    #logScores[idsInf] <- minimum
+    #data[[output]] <- logScores
     
     #htmAddLog("Replacing Infinities in Log2 Score by")
     #htmAddLog(minimum)
@@ -1504,36 +1515,45 @@ htmNormalization <- function(htm) {
   
   if(normalisation != "None selected") {
     
+    print("")
+    print("Per batch normalisation:")
+    print(paste("  Method:",normalisation))
+    print(paste("  Input:",input))
+    
     # init columns
-    manipulation <- paste0(manipulation,"__",normalisation,"__")
+    manipulation <- paste0(manipulation,normalisation,"__")
     output = paste0("HTM_norm",manipulation,measurement)
     data[[output]] = NA
+    print(paste("  Output:",output))
     
     # computation
-    cat("\nComputing normalisations...\n")
+    #cat("\nComputing normalisations...\n")
     
     for(experiment in experiments) {
       
       if(experiment %in% experiments_to_exclude) next
       
-      print("")
-      print(paste("  Experiment:",experiment))
+      #print("")
+      #print(paste("  Experiment:",experiment))
       
       indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[measurement]]))
+      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
       
       if("all treatments" %in% negcontrols) {
         indices_controls_ok <- indices_ok
       } else {
-        indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & !is.na(data[[measurement]]) & (data$HTM_qc) & (data[[htm@settings@columns$treatment]] %in% negcontrols))
+        indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) 
+                                     & !is.na(data[[input]]) 
+                                     & (data$HTM_qc) 
+                                     & (data[[htm@settings@columns$treatment]] %in% negcontrols))
       }
       
-      print(paste("   Total", length(indices_all)))
-      print(paste("   Valid", length(indices_ok)))      
-      print(paste("   Valid Control", length(indices_controls_ok)))
+      #print(paste("   Total", length(indices_all)))
+      #print(paste("   Valid", length(indices_ok)))      
+      #print(paste("   Valid Control", length(indices_controls_ok)))
       
       # extract control values 
-      valuescontrol <- data[indices_controls_ok, measurement]
+      valuescontrol <- data[indices_controls_ok, input]
       #print(valuescontrol)
       
       nr_of_controls <-  length(valuescontrol)
@@ -1542,28 +1562,28 @@ htmNormalization <- function(htm) {
       mediancontrol <- median(valuescontrol)
       madcontrol <- mad(valuescontrol)  
       semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
-      print(paste("    Control Mean:", meancontrol))
-      print(paste("    Control SD:", sigmacontrol))
-      print(paste("    Control Median:", mediancontrol))
-      print(paste("    Control MAD:", madcontrol))
+      #print(paste("    Control Mean:", meancontrol))
+      #print(paste("    Control SD:", sigmacontrol))
+      #print(paste("    Control Median:", mediancontrol))
+      #print(paste("    Control MAD:", madcontrol))
       
       if(normalisation == "z_score") {
-        data[indices_all, output] <- ( data[indices_all, measurement] - meancontrol ) / sigmacontrol
+        data[indices_all, output] <- ( data[indices_all, input] - meancontrol ) / sigmacontrol
       } 
       else if(normalisation == "robust_z_score") {
-        data[indices_all, output] <- ( data[indices_all, measurement] - mediancontrol ) / madcontrol
+        data[indices_all, output] <- ( data[indices_all, input] - mediancontrol ) / madcontrol
       } 
       else if(normalisation == "subtract_mean_ctrl") {
-        data[indices_all, output] <- data[indices_all, measurement] - meancontrol 
+        data[indices_all, output] <- data[indices_all, input] - meancontrol 
       }
       else if(normalisation == "divide_by_mean_ctrl") {
-        data[indices_all, output] <- data[indices_all, measurement] / meancontrol 
+        data[indices_all, output] <- data[indices_all, input] / meancontrol 
       }
       else if(normalisation == "subtract_median_ctrl") {
-        data[indices_all, output] <- data[indices_all, measurement] - mediancontrol 
+        data[indices_all, output] <- data[indices_all, input] - mediancontrol 
       }
       else if(normalisation == "divide_by_median_ctrl") {
-        data[indices_all, output] <- data[indices_all, measurement] / mediancontrol 
+        data[indices_all, output] <- data[indices_all, input] / mediancontrol 
       }
       
     } # experiment loop
@@ -2258,14 +2278,15 @@ htmTreatmentSummary_Data <- function(htm) {
                         controls=rep(negative_ctrl,numEntries),  
                         treatment=rep(NA,numEntries),
                         batches = rep(NA,numEntries),
-                        means = rep(NA,numEntries),
                         z_scores = rep(NA,numEntries),
-                        median__means = rep(NA,numEntries),
                         median__z_scores = rep(NA,numEntries),
                         
                         t_test__estimate=rep(NA,numEntries),
                         t_test__p_value=rep(NA,numEntries),
                         t_test__signCode=rep(NA,numEntries),
+                        
+                        means = rep(NA,numEntries),
+                        median__means = rep(NA,numEntries),
                         
                         #z_score__allBatches=rep(NA,numEntries),
                         #robust_z_score__allBatches=rep(NA,numEntries),
@@ -2287,7 +2308,6 @@ htmTreatmentSummary_Data <- function(htm) {
   ###################################
   
   print("Computing statistics...")
-  
   ids_treatments = split(1:nrow(data), data[[htm@settings@columns$treatment]])
   
   i=0
@@ -2305,12 +2325,20 @@ htmTreatmentSummary_Data <- function(htm) {
     t_test__p_value = NA
     t_test__signCode = NA
     t_test__estimate = NA
-    
+    z_scores = NA
+    median__z_scores = NA
+    median__means = NA
+    means = NA
+    batches = NA
+    d = data.frame(value=NA, treatment=NA, experiment=NA)
     
     # compute
-    if(1) { #(treat %in% negative_ctrl)) {
+    if(1) { #treat %in% c("SETDB1_s19112")) {
       
-      # get experiments containing current treatment
+      # only keep treatment valus that passed QC
+      ids <- ids[which(data[ids,"HTM_qc"]==1)]
+      
+      # get experiments containing current treatment, which passed QC
       exps <- unique(data[ids,htm@settings@columns$experiment])
       
       d <- subset(data, 
@@ -2328,6 +2356,8 @@ htmTreatmentSummary_Data <- function(htm) {
       
       d$treatment = ifelse(d$treatment %in% negative_ctrl, "control", d$treatment)
       
+      #print(d)
+        
       if ( (sum(d$treatment=="control")>1) & (sum(d$treatment==treat)>1) ) {
         
         #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
@@ -2346,7 +2376,10 @@ htmTreatmentSummary_Data <- function(htm) {
                                           ifelse(t_test__p_value<0.05,"*",
                                                  ifelse(t_test__p_value<0.1,"."," "
                                                  ))))
-         
+      }
+      
+      if ( (sum(d$treatment=="control")>=1) & (sum(d$treatment==treat)>=1) ) {
+        
         d_ctrl = subset(d, d$treatment=="control")
         means_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, mean)
         sds_ctrl <- tapply(d_ctrl$value, d_ctrl$experiment, sd)
@@ -2354,28 +2387,41 @@ htmTreatmentSummary_Data <- function(htm) {
         d_treat = subset(d, d$treatment==treat)
         means_treat <- tapply(d_treat$value, d_treat$experiment, mean)
         
+        
         z_scores = (means_treat - means_ctrl) / sds_ctrl
         median__z_scores = median(z_scores)
+        
         z_scores = paste(round(z_scores,2),collapse=";")
         
-        }
-      
-      if(!(treat %in% negative_ctrl)) {
-        d_treated = subset(d, d$treatment==treat )
-      } else {
-        d_treated = subset(d, d$treatment=="control")
       }
         
-      # these  values need no negative control, that's why they are outside of above if-statement
-      means_treated <- tapply(d_treated$value, d_treated$experiment, mean)
-      batches = paste(names(means_treated),collapse=";")
-      means = paste(round(means_treated,3),collapse=";")
-      median__means = median(means_treated)
+      #print(d)
+      #print(treat)
+      #print(means_treat)
+      #print(negative_ctrl)
+      #print(means_ctrl)
+      #print(sds_ctrl)
+      #print(z_scores)
+      #ddd        
         
+    
+    } # select treatment for debugging
+    
+    
+    if(!(treat %in% negative_ctrl)) {
+        d_treated = subset(d, d$treatment==treat )
+    } else {
+        d_treated = subset(d, d$treatment=="control")
+    }
+    
+    
+    # these  values need no negative control, that's why they are outside of above if-statement
+    means_treated <- tapply(d_treated$value, d_treated$experiment, mean)
+    batches = paste(names(means_treated),collapse=";")
+    means = paste(round(means_treated,3),collapse=";")
+    median__means = median(means_treated)
       
-    #} # if not negative control
-      
-      
+  
     i = i + 1
     results$treatment[i] <- treat
     results$t_test__p_value[i] = t_test__p_value
@@ -2389,13 +2435,7 @@ htmTreatmentSummary_Data <- function(htm) {
     results$numObjectsOK[i] = sum(d_treated$count)
     results$numImagesOK[i] = nrow(d_treated)
     results$numReplicatesOK[i]= length(unique(d_treated$experiment))
-    
     results$mean_number_of_objects_per_image[i] = results$numObjectsOK[i]/results$numImagesOK[i]
-    
-    
-    print(head(results))
-    fff
-    }
     
     
   }  # treatment loop   
