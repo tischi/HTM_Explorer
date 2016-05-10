@@ -6,7 +6,7 @@ htmSettingsConstructor = setClass("htmSettings",
                                     visualisation = "list",
                                     statistics = "list",
                                     columns = "list",
-                                    qcImages = "data.frame"
+                                    qcImages = "data.frame",
                                     qc = "data.frame"
                                   ))
 
