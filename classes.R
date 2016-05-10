@@ -35,11 +35,6 @@ htmMake <- function(data = data.frame()) {
     
     columns = list(),
     
-    qcImages = data.frame(colname = "None selected", 
-                          min = NA, 
-                          max = NA, 
-                          stringsAsFactors = FALSE),
-        
     qc       = data.frame(colname = "None selected", 
                           min = NA, 
                           max = NA, 
