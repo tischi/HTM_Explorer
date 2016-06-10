@@ -1016,6 +1016,7 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     }
     ids <- order(data$medians,na.last=NA)
   }
+  
   if(sorting=="mean value") {
     print("  applying mean sorting")
     #print(unique(factor(data[[cx]])))
@@ -1069,6 +1070,14 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     treatments <- treatments[ids]
     print("  colorizing by treatment")
     .colors = factor(treatments, levels=unique(treatments)) 
+    n = length(levels(.colors))
+    if(n<=8) {
+      col_pal <- brewer.pal(8,"Set2")
+    } else {
+      col_pal <- rainbow(n)
+    }
+    .colors = col_pal[factor(.colors)]
+    
   } else {
     .colors = rep("grey30", nrow(data))
   }  
@@ -1218,8 +1227,7 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
     if(colorizeTreatments == T) {
       print("  putting legend")
       treatments <- treatments[ids]
-      legend("topleft", inset=c(0,0), legend = unique(treatments), bg="white", col=1:length(treatments), pch=16, bty="n")
-      #min(jp.x), max(jp.y), 
+      legend("topleft", inset=c(0,0), legend = levels(factor(treatments)), bg="white", col=col_pal, pch=16, bty="n")
     }
     
     
@@ -1645,7 +1653,12 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     } else {
       .colors = data[[colorize]]
     }
-    col_pal <- rainbow(length(unique(data[[colorize]])))
+    n = length(unique(data[[colorize]]))
+    if(n<=8) {
+      col_pal <- brewer.pal(8,"Set2")
+    } else {
+      col_pal <- rainbow(n)
+    }
     .colors = col_pal[factor(.colors)]
   } else {
     .colors = rep(1, length(vx))
@@ -1674,8 +1687,8 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
   
   if(action=="plot") {
     
-    factors <- factor(treatments, levels=unique(treatments)) 
-    palette(rainbow(length(unique(treatments)))) 
+    #factors <- factor(treatments, levels=unique(treatments)) 
+    #palette(rainbow(length(unique(treatments)))) 
     
     if(newdev){
       dev.new()
@@ -1744,7 +1757,7 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     
     if( colorize != "None selected") {
       print("  putting legend")
-      legend("topleft",legend = levels(factor(treatments)), bg="white", col=col_pal,pch=16)
+      legend("topleft",legend = levels(factor(data[[colorize]])), bg="white", col=col_pal, pch=16)
       # x=max(vx,na.rm=T),y=max(vy,na.rm=T),
     }
     

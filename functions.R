@@ -2335,12 +2335,11 @@ htmTreatmentSummary_Data <- function(htm) {
     # compute
     if(1) { #treat %in% c("SETDB1_s19112")) {
       
-      # only keep treatment valus that passed QC
-      ids <- ids[which(data[ids,"HTM_qc"]==1)]
-      
-      # get experiments containing current treatment, which passed QC
+      # only keep valid treatment values to find the corresponding experiments
+      ids <- ids[which((data[ids,"HTM_qc"]==1) & !(is.na(data[ids,measurement])))]
       exps <- unique(data[ids,htm@settings@columns$experiment])
       
+      # extract treatment and control values of the respective experiments
       d <- subset(data, 
                   (data[[htm@settings@columns$treatment]] %in% c(treat,negative_ctrl))
                   & (data[[htm@settings@columns$experiment]] %in% exps) 
@@ -2387,9 +2386,26 @@ htmTreatmentSummary_Data <- function(htm) {
         d_treat = subset(d, d$treatment==treat)
         means_treat <- tapply(d_treat$value, d_treat$experiment, mean)
         
+        tryCatch(z_scores <- (means_treat - means_ctrl) / sds_ctrl
+          , error = function(e) {
+            print(d)
+            print(treat)
+            print(means_treat)
+            print(negative_ctrl)
+            print(means_ctrl)
+            #print(sds_ctrl)
+            print(z_scores)
+            print(ids)
+            print(idsOld)
+            print(data[ids,])
+            print(data[idsOld,])
+            print(e)
+            
+            
+            ddd
+          })
         
-        z_scores = (means_treat - means_ctrl) / sds_ctrl
-        median__z_scores = median(z_scores)
+          median__z_scores = median(z_scores)
         
         z_scores = paste(round(z_scores,2),collapse=";")
         

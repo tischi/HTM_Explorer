@@ -2557,26 +2557,23 @@ guiHandler_htmSaveSetttings <- function(h,...){
 
 mbl <- list()
 
-mbl$Main$"Load table"$handler =  guiHandler_LoadDataTable
-mbl$Main$"Table tools"$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTables
-mbl$Main$"Table tools"$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
-mbl$Main$"Table tools"$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
-mbl$Main$"Table tools"$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
-mbl$Main$"Quality control"$handler =  guiHandler_DataQCs
-mbl$Main$"Normalisation"$handler =  guiHandler_Normalisation
-mbl$Main$"Treatment summary"$handler =  guiHandler_TreatmentSummary
-mbl$Main$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
-mbl$Main$"Jitter plot"$handler = guiHandler_JitterPlot_Data
-mbl$Main$"Heatmap"$handler = guiHandler_Heatmap_Data
-
-#mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
+mbl$Tables$"Load single table"$handler =  guiHandler_LoadDataTable
+mbl$Tables$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTables
+mbl$Tables$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
+mbl$Tables$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
+mbl$Tables$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
 mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
 mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
-mbl$Configure$Configure$"Assay columns"$handler = guiHandler_SetColumns
-mbl$Configure$Configure$"Visualisation Settings"$handler = guiHandler_VisualisationSettings
-#mbl$Main$Configure$"Load config"$handler = guiHandler_htmLoadSetttings
-mbl$Configure$Quit$handler = function(h,...) {dispose(w)}
-mbl$Configure$Quit$icon = "quit"
+mbl$Configure$"Configure assay columns"$handler = guiHandler_SetColumns
+mbl$Configure$"Configure visualisation Settings"$handler = guiHandler_VisualisationSettings
+mbl$Plotting$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
+mbl$Plotting$"Jitter plot"$handler = guiHandler_JitterPlot_Data
+mbl$Plotting$"Heatmap"$handler = guiHandler_Heatmap_Data
+mbl$Analysis$"Quality control"$handler =  guiHandler_DataQCs
+mbl$Analysis$"Normalisation"$handler =  guiHandler_Normalisation
+mbl$Analysis$"Compute treatment summary"$handler =  guiHandler_TreatmentSummary
+
+#mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
 
 mbl$Help$"About"$handler =  function(h,...) { guiShowHelpFile("version.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
@@ -2585,17 +2582,17 @@ mbl$Help$"Visualisation settings"$handler =  function(h,...) { guiShowHelpFile("
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
 
 
-mbl$DO_NOT_USE_Plot$"Heatmap"$handler = guiHandler_Heatmap
-mbl$DO_NOT_USE_Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
-mbl$DO_NOT_USE_Plot$"Jitter plot"$handler = guiHandler_JitterPlot
+#mbl$DO_NOT_USE_Plot$"Heatmap"$handler = guiHandler_Heatmap
+#mbl$DO_NOT_USE_Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
+#mbl$DO_NOT_USE_Plot$"Jitter plot"$handler = guiHandler_JitterPlot
 
 
 #mbl$Plot$"Treatment summary plot"$handler = guiHandler_TreatmentSummarySortedValuesPlot
 
-mbl$DO_NOT_USE_Analysis$"Assay overview"$handler = guiHandler_htmOverview
-mbl$DO_NOT_USE_Analysis$"Image QC"$handler = guiHandler_ImageQCs
+#mbl$DO_NOT_USE_Analysis$"Assay overview"$handler = guiHandler_htmOverview
+#mbl$DO_NOT_USE_Analysis$"Image QC"$handler = guiHandler_ImageQCs
 #mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
-mbl$DO_NOT_USE_Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
+#mbl$DO_NOT_USE_Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
 
 #mbl$Tables$"Image table"$"View"$handler = function(h,...) { edit(htm@data) }
 #mbl$Tables$"Image table"$"Load"$handler = guiHandler_LoadImageTable
