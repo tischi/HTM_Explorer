@@ -1821,9 +1821,16 @@ guiHandler_ImageQCs <- function(h, ...) {
 }
 
 guiHandler_DataQCs <- function(h, ...) {
-  w <- gwindow("Data QC Add/Remove", visible=F)
+  w <- gwindow("Data QC", visible=F)
+  
+  gui_AddRemoveVectorSetting(name="  Failed experiments  ",
+                             setting="statistics$experiments_to_exclude",
+                             choices = c(sort(unique(htm@data[[htm@settings@columns$experiment]]))),
+                             container = w)
+  
   gp <- ggroup(horizontal = FALSE, container=w)
   
+
   # todo: one can add the same one twice!
   
   tmp <- gframe("Add QC", horizontal=F, container=gp, expand=TRUE)
@@ -2494,11 +2501,6 @@ guiHandler_AverageAndNormalise <- function(h,...){
 guiHandler_AverageAndNormalise_Options <- function(h,...){
 
   w <- gwindow("Statistical Analysis", visible=F)
-  
-  gui_AddRemoveVectorSetting(name="  Experiments to be excluded  ",
-                             setting="statistics$experiments_to_exclude",
-                             choices = c(sort(unique(htm@data[[htm@settings@columns$experiment]]))),
-                             container = w)
   
   gui_ListSettingDropdown(text = "  Positive control  ",
                           setting = "statistics",
