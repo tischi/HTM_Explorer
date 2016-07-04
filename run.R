@@ -2,34 +2,35 @@
 # path = "\\\\almf\\almf\\software\\scripts\\R\\HTM_Explorer";setwd(path);source("run.R");
 # path = "/Users/tischi/Dropbox/R/HTM/HTM_Explorer/HTM_Explorer";setwd(path);source("run.R"); 
 
+# path = "/Users/tischi/Downloads/HTM_Explorer-master/";setwd(path);source("run.R"); 
 
 if (!require("gWidgets")) {
-  install.packages("gWidgets")
+  install.packages("gWidgets", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(gWidgets)
 }
 if (!require("gWidgetstcltk")) {
-  install.packages("gWidgetstcltk")
+  install.packages("gWidgetstcltk", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(gWidgetstcltk)
 }
 if (!require("markdown")) {
-  install.packages("markdown")
+  install.packages("markdown", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(markdown)
 }
 if (!require("plyr")) {
-  install.packages("plyr")
+  install.packages("plyr", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(plyr)
 }
 if (!require("RColorBrewer")) {
-  install.packages("RColorBrewer")
+  install.packages("RColorBrewer", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(RColorBrewer)
 }
 if (!require("EBImage")) {
-  source("https://bioconductor.org/biocLite.R")
+  source("https://bioconductor.org/biocLite.R", dependencies=TRUE, repos='http://cran.rstudio.com/')
   biocLite("EBImage")
   library(EBImage)
 }
 if (!require("raster")) {
-  install.packages("raster")
+  install.packages("raster", dependencies=TRUE, repos='http://cran.rstudio.com/')
   library(raster)
 }
 
