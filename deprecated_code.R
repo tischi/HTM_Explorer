@@ -1,4 +1,13 @@
 
+
+
+
+handler_zoomJitterPlot <-  function(h, ...){
+  loc = locator(n=2)
+  jp.plot(jp.cx,jp.cy,ylabel=jp.cy,jp.xlim=sort(loc$x),jp.ylim=sort(loc$y) )
+}
+
+
 htmShowTreatmentsFromRow  <- function(htm, data, ir){
   
   treatment = data$treatment[ir]

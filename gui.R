@@ -625,9 +625,42 @@ guiHandler_JitterPlot_Data <- function(h,...){
                    
   #obj <- gbutton("Click and view image", editable=TRUE, container = gp, handler = handler_showImageJitterPlot )
   
-  
-  
 }
+
+
+guiHandler_JitterPlot_Help <- function(h,...) {
+  
+  w <- gwindow("", visible=F)
+  gf <- gframe("  Help for Jitter Plot  ", cont=w, horizontal=F)
+  glabel(" ", container=gf)
+  glabel("Statistical output:", container=gf)
+  glabel("", container=gf)
+  glabel("Statistics are computed against the selected Reference.")
+  glabel("  Z-score = abs(mean(x)-mean(ref)) / sd(ref) ", container=gf)
+  glabel("  Robust Z-score = abs(median(x)-median(ref)) / mad(ref) ", container=gf)
+  glabel("  Z-factor = 1 - 3*(sd(ref)+sd(x))/abs(mean(ref)-mean(x))", container=gf)
+  glabel("  T-test = Student's t-test", container=gf)
+  glabel("  ", container=gf)
+  glabel("The Z-score is the number of standard deviations by which the mean of condition x differs from the reference mean.", container=gf)
+  glabel("  ", container=gf)  
+  glabel("The robust Z-score is the number of median average deviations by which the median of condition x differs from the reference median.", container=gf)
+  glabel("  ", container=gf)  
+  glabel("The Z-factor is typically computed between positive and negative controls and is a measure of assay quality.", container=gf)
+  glabel("  http://en.wikipedia.org/wiki/Z-factor", container=gf)
+  glabel("  Z-factor>0.5 => excellent separation (>12 sd separation)", container=gf)
+  glabel("  Z-factor>0 => marginal separation (>6 sd separation) ", container=gf)
+  glabel("  Z-factor<0 => too much overlap", container=gf)
+  glabel("  ", container=gf)  
+  glabel("The T-test is used to determine if two sets of data are significantly different from each other.", container=gf)
+  glabel("  http://en.wikipedia.org/wiki/Student's_t-test", container=gf)  
+  glabel("  The output value gives the probabiliy that the means of both sets are the same.", container=gf)
+  glabel("  Typically values <0.05 are considered to indicate a statistically signficant difference of the sample means.", container=gf)
+  glabel("  ", container=gf)  
+  visible(w) <- T
+  
+} 
+
+
 
 guiHandler_JitterPlot_Data_Options <- function(h,...) {
   
@@ -2056,7 +2089,7 @@ mbl$Tables$"Save as"$handler = function(h,...) { path = gfile("Save as...", type
 mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
 mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
 mbl$Configure$"Configure assay columns"$handler = guiHandler_SetColumns
-mbl$Configure$"Configure visualisation Settings"$handler = guiHandler_VisualisationSettings
+mbl$Configure$"Configure visualisation settings"$handler = guiHandler_VisualisationSettings
 mbl$Plotting$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
 mbl$Plotting$"Jitter plot"$handler = guiHandler_JitterPlot_Data
 mbl$Plotting$"Heatmap"$handler = guiHandler_Heatmap_Data

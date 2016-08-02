@@ -2,12 +2,18 @@
 
 htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
   
+  if(htmGetListSetting(htm,"visualisation","viewImages") == "None selected") {
+    print("")
+    print("No image selected for viewing; see [Configure > Configure visualisation settings]")
+    return(0)
+  }
+  
   filenamePrefix = htm@settings@visualisation$image_filename_prefix
   foldernamePrefix = htm@settings@visualisation$image_foldername_prefix
   
   # convert to forward slashes immideately, otherwise gsub has problems later
-  rootFolderTable = gsub("\\\\" ,"/",htm@settings@visualisation$image_root_foldername_in_table)
-  rootFolderReal = gsub("\\\\" ,"/",htm@settings@visualisation$image_root_foldername_on_this_computer)  
+  rootFolderTable = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_in_table"))
+  rootFolderReal = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_on_this_computer"))  
   
   if( .Platform$OS.type == "unix" ) {
     #imageViewerCMD = "/Applications/Fiji.app/Contents/MacOS/fiji-macosx --no-splash"
@@ -18,7 +24,6 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
   } else {
     imageViewerCMD = "unkown"
   }
-  
   
   cmd = imageViewerCMD
   
@@ -48,7 +53,6 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
         
         # construct pathname from file- and folder-name
       
-        
         if( grepl(filenamePrefix,colname) ) {
           
           imagename = strsplit(colname,filenamePrefix)[[1]][2]
@@ -156,136 +160,6 @@ htmShowWellsFromRow <- function(htm,data,ir){
   }   
   
 }
-
-
-
-htmShowHeatmapData <- function(htm, selectedExp="", selectedMeasurement, markQC = T, width = htm@settings@visualisation$heatmap_width, 
-                           colorLUT.autoscale = F, colorLUT.min = 0, colorLUT.max = 100, newdevice = T, 
-                           show_gradient_correction = F, action="plot")  {
-  
-  
-  dat <- subset(htm@data,(htm@data[[htm@settings@columns$experiment]]==selectedExp))
-  dat[[selectedMeasurement]] = as.numeric( dat[[selectedMeasurement]] )
-  dat[[htm@settings@columns$posnum]] = as.numeric( dat[[htm@settings@columns$posnum]] )
-  if(!any(grepl("(?i)[A-Z]", dat[[htm@settings@columns$wellnum]]))) {
-    dat[[htm@settings@columns$wellnum]] = as.numeric( dat[[htm@settings@columns$wellnum]] )
-  }
-  
-  
-  if(colorLUT.autoscale == T) {
-    colorLUT.min <- quantile(dat[[selectedMeasurement]], 0.03, na.rm=T) #min(dat, na.rm=T) 
-    colorLUT.max <- quantile(dat[[selectedMeasurement]], 0.97, na.rm=T) #max(dat, na.rm=T)      
-  }
-  
-  
-  print("")
-  print("Show heatmap:")
-  print("*************")
-  print(paste("selected Experiment =",selectedExp))
-  print(paste("selected Measurement =",selectedMeasurement))
-  print(paste("colorLUT.min =",colorLUT.min))
-  print(paste("colorLUT.max =",colorLUT.max))
-  
-  
-  dat$val = 255*(dat[[selectedMeasurement]]-as.numeric(colorLUT.min) )/(as.numeric(colorLUT.max)-as.numeric(colorLUT.min) )
-  toosmall = which(dat$val<1)
-  toolarge = which(dat$val>255)
-  dat$val[toosmall]=1
-  dat$val[toolarge]=255
-  colpal <- colorRampPalette(c("blue","white","red"))(255)
-  
-  plate.nrow = htm@settings@visualisation$number_positions_y
-  plate.ncol = htm@settings@visualisation$number_positions_x
-  
-  
-  #par(mar=c(5.1,6.1,6.1,2.1))
-  
-  xy = htm_convert_wellNum_posNum_to_xy(dat[[htm@settings@columns$wellnum]],dat[[htm@settings@columns$posnum]])
-
-  if(action=="plot") {  
-  
-    if(newdevice) { 
-      dev.new(width = 1.5 * width, height =  plate.nrow / plate.ncol * width)
-    } 
-    
-    op <- par(bg = "grey")
-    
-    plot(x = xy$x, y = xy$y, col=colpal[dat$val], 
-     ylim = rev(range(xy$y)),  
-     xlim = round(range(xy$x)),
-     xaxt = "n", yaxt = "n", xaxs = "i",
-     pch = 15, cex= htm@settings@visualisation$heatmap_image_size_cex, xlab="", ylab="",
-     asp = 1
-     )
-     title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
-
-  axis(1, at=1:plate.ncol, labels=1:plate.ncol, las=1,  cex.axis = 1)
-  axis(2, at=1:plate.nrow, labels=LETTERS[1:plate.nrow], las=2, cex.axis = 1)
-
-  par(op)
-  
-  
-  #todo: change qcImages to ImageQC
-  
-  if(markQC) {
-      
-      if(!is.null(dat$HTM_qc)) {    
-        print("  adding image QC.")
-        ids <- which(dat$HTM_qc==0)
-        x <- vector(length=length(ids))
-        y <- vector(length=length(ids))
-        for (i in seq(1,length(ids))) {
-          x[i] <- xy$x[ids[i]]
-          y[i] <- xy$y[ids[i]]
-        }
-        points(x, y, pch=4, cex=1*htm@settings@visualisation$heatmap_image_size_cex)
-        
-      } else {
-        print("  no image QC available.")
-      }
-      
-      # well QC
-      if(!is.null(dat$HTM_qcWells)) {
-        print("  adding well QC.")
-        for (i in which(dat$HTM_qcWells==0)) {
-          points(xy$x[i], xy$y[i], pch=4, cex=htm@settings@visualisation$heatmap_image_size_cex * htm@settings@visualisation$number_subpositions_x) 
-        }
-      } else {
-        print("  no well QC available.")
-      }
-    
-    
-    
-    # plate QC
-    if(!is.null(dat$HTM_qcPlates)) {    
-      print("  adding plate QC.")
-      if(dat$HTM_qcPlates[1]==0) {
-        points(x=mean(xy$x),y=mean(xy$y), pch=4, cex=100) 
-      }
-    } else {
-      print("  no plate QC available.")
-    }
-    
-    
-    } # if markQC
-  
-  } # if action=="plot"
-  
-  
-  if (action=="click") {
-    print("please select an image for viewing!")
-    i <- identify(xy$x, xy$y, n = 1, plot = FALSE)
-    print("       ")
-    print(paste("experiment =", dat[[htm@settings@columns$experiment]][i]))
-    print(paste("treatment =", dat[[htm@settings@columns$treatment]][i]))
-    print(paste(selectedMeasurement,"=", dat[[selectedMeasurement]][i]))
-    print("       ")
-    htmShowDataFromRow(htm,dat,i)
-  } 
-  
-  
-} #htmShowHeatmapData
-
 
 
 colorbar <- function(lut, min, max, nticks=11, ticks=seq(min, max, len=nticks), newdevice = T) {
@@ -931,7 +805,10 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
   
   if(action=="click") {
     i <- identify(jp.x, jp.y, n = 1, plot = FALSE)
-    print(paste("y-axis value =",data[ids[i],cy]))
+    print("")
+    print(paste(cx,"=",data[ids[i],cx]))
+    print(paste(cy,"=",data[ids[i],cy]))
+    print(paste("treatment =",treatments[ids[i]]))
     htmShowDataFromRow(htm,data[ids,],i)
   }
   
@@ -941,45 +818,6 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
   
   
 }
-
-
-htmHisto <- function(cx,  experimentSubset = "None selected", treatmentSubset= "None selected", datatype, save2file = F, newdev = T) {
-  
-  if(datatype=="wells") {
-    data <- htm@wellSummary
-    
-    if(experimentSubset[1] != "None selected")  data <- subset(htm@wellSummary, htm@wellSummary$experiment==selectedExp )
-    if(treatmentSubset[1] != "None selected") data <- subset(data, htm@wellSummary$treatment %in% treatmentSubset)
-    
-    qc <- data$wellQC
-    treatments <- htm@wellSummary$treatment 
-    
-  }
-  
-  plotTitle = ""
-  if(treatmentSubset[1] != "None selected") {
-    plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
-  } else {
-    plotTitle = paste(plotTitle,"All treatments",sep="\n")
-  }
-  
-  if(save2file) {
-    path = gfile("Save as...", type="save", initialfilename = paste0("Histogram__Mean_Corrected_Controls--",htmGetListSetting(htm,"statistics","transformation"),"--",htmGetListSetting(htm,"statistics","measurement"),".pdf"))
-    pdf(file=path)
-    print(path)
-  } else if(newdev){
-    dev.new()
-  }
-  
-  hist(data[[cx]], xlab=cx, main=plotTitle)
-  
-  if(save2file) {
-    dev.off()
-  }
-  
-
-}
-
 
 htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None selected", aggregate = "None selected", experimentSubset="None selected", treatmentSubset="None selected", newdev=T, action="plot") {
   
@@ -1125,22 +963,147 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     par(op)
   }
   
-  
-  
+
   if(action=="click") {
+    print("")
     i <- identify(vx, vy, n = 1, plot = FALSE)
-    print(paste("  x-axis value =",data[i,cx]))
-    print(paste("  y-axis value =",data[i,cy]))
+    print(paste(cx,"=",data[i,cx]))
+    print(paste(cy,"=",data[i,cy]))
+    print(paste("treatment =",treatments[i]))
     htmShowDataFromRow(htm, data, i)
   } 
   
 }
 
 
-handler_zoomJitterPlot <-  function(h, ...){
-  loc = locator(n=2)
-  jp.plot(jp.cx,jp.cy,ylabel=jp.cy,jp.xlim=sort(loc$x),jp.ylim=sort(loc$y) )
-}
+
+htmShowHeatmapData <- function(htm, selectedExp="", selectedMeasurement, markQC = T, width = htm@settings@visualisation$heatmap_width, 
+                               colorLUT.autoscale = F, colorLUT.min = 0, colorLUT.max = 100, newdevice = T, 
+                               show_gradient_correction = F, action="plot")  {
+  
+  
+  dat <- subset(htm@data,(htm@data[[htm@settings@columns$experiment]]==selectedExp))
+  dat[[selectedMeasurement]] = as.numeric( dat[[selectedMeasurement]] )
+  dat[[htm@settings@columns$posnum]] = as.numeric( dat[[htm@settings@columns$posnum]] )
+  if(!any(grepl("(?i)[A-Z]", dat[[htm@settings@columns$wellnum]]))) {
+    dat[[htm@settings@columns$wellnum]] = as.numeric( dat[[htm@settings@columns$wellnum]] )
+  }
+  
+  
+  if(colorLUT.autoscale == T) {
+    colorLUT.min <- quantile(dat[[selectedMeasurement]], 0.03, na.rm=T) #min(dat, na.rm=T) 
+    colorLUT.max <- quantile(dat[[selectedMeasurement]], 0.97, na.rm=T) #max(dat, na.rm=T)      
+  }
+  
+  
+  print("")
+  print("Show heatmap:")
+  print("*************")
+  print(paste("selected Experiment =",selectedExp))
+  print(paste("selected Measurement =",selectedMeasurement))
+  print(paste("colorLUT.min =",colorLUT.min))
+  print(paste("colorLUT.max =",colorLUT.max))
+  
+  
+  dat$val = 255*(dat[[selectedMeasurement]]-as.numeric(colorLUT.min) )/(as.numeric(colorLUT.max)-as.numeric(colorLUT.min) )
+  toosmall = which(dat$val<1)
+  toolarge = which(dat$val>255)
+  dat$val[toosmall]=1
+  dat$val[toolarge]=255
+  colpal <- colorRampPalette(c("blue","white","red"))(255)
+  
+  plate.nrow = htm@settings@visualisation$number_positions_y
+  plate.ncol = htm@settings@visualisation$number_positions_x
+  
+  
+  #par(mar=c(5.1,6.1,6.1,2.1))
+  
+  xy = htm_convert_wellNum_posNum_to_xy(dat[[htm@settings@columns$wellnum]],dat[[htm@settings@columns$posnum]])
+  
+  if(action=="plot") {  
+    
+    if(newdevice) { 
+      dev.new(width = 1.5 * width, height =  plate.nrow / plate.ncol * width)
+    } 
+    
+    op <- par(bg = "grey")
+    
+    plot(x = xy$x, y = xy$y, col=colpal[dat$val], 
+         ylim = rev(range(xy$y)),  
+         xlim = round(range(xy$x)),
+         xaxt = "n", yaxt = "n", xaxs = "i",
+         pch = 15, cex= htm@settings@visualisation$heatmap_image_size_cex, xlab="", ylab="",
+         asp = 1
+    )
+    title(paste(selectedExp,selectedMeasurement,sep="\n"),cex.main=1)
+    
+    axis(1, at=1:plate.ncol, labels=1:plate.ncol, las=1,  cex.axis = 1)
+    axis(2, at=1:plate.nrow, labels=LETTERS[1:plate.nrow], las=2, cex.axis = 1)
+    
+    par(op)
+    
+    
+    #todo: change qcImages to ImageQC
+    
+    if(markQC) {
+      
+      if(!is.null(dat$HTM_qc)) {    
+        print("  adding image QC.")
+        ids <- which(dat$HTM_qc==0)
+        x <- vector(length=length(ids))
+        y <- vector(length=length(ids))
+        for (i in seq(1,length(ids))) {
+          x[i] <- xy$x[ids[i]]
+          y[i] <- xy$y[ids[i]]
+        }
+        points(x, y, pch=4, cex=1*htm@settings@visualisation$heatmap_image_size_cex)
+        
+      } else {
+        print("  no image QC available.")
+      }
+      
+      # well QC
+      if(!is.null(dat$HTM_qcWells)) {
+        print("  adding well QC.")
+        for (i in which(dat$HTM_qcWells==0)) {
+          points(xy$x[i], xy$y[i], pch=4, cex=htm@settings@visualisation$heatmap_image_size_cex * htm@settings@visualisation$number_subpositions_x) 
+        }
+      } else {
+        print("  no well QC available.")
+      }
+      
+      
+      
+      # plate QC
+      if(!is.null(dat$HTM_qcPlates)) {    
+        print("  adding plate QC.")
+        if(dat$HTM_qcPlates[1]==0) {
+          points(x=mean(xy$x),y=mean(xy$y), pch=4, cex=100) 
+        }
+      } else {
+        print("  no plate QC available.")
+      }
+      
+      
+    } # if markQC
+    
+  } # if action=="plot"
+  
+  
+  if (action=="click") {
+    print("please select an image for viewing!")
+    i <- identify(xy$x, xy$y, n = 1, plot = FALSE)
+    print("       ")
+    print(paste("experiment =", dat[[htm@settings@columns$experiment]][i]))
+    print(paste("treatment =", dat[[htm@settings@columns$treatment]][i]))
+    print(paste(selectedMeasurement,"=", dat[[selectedMeasurement]][i]))
+    print("       ")
+    htmShowDataFromRow(htm,dat,i)
+  } 
+  
+  
+} #htmShowHeatmapData
+
 
 
 handler_showImageJitterPlot <-  function(h, ...){
@@ -1150,6 +1113,46 @@ handler_showImageJitterPlot <-  function(h, ...){
   #showImagesFromRow(ir)
   showImagesFromRow2(ir)
 }
+
+
+
+htmHisto <- function(cx,  experimentSubset = "None selected", treatmentSubset= "None selected", datatype, save2file = F, newdev = T) {
+  
+  if(datatype=="wells") {
+    data <- htm@wellSummary
+    
+    if(experimentSubset[1] != "None selected")  data <- subset(htm@wellSummary, htm@wellSummary$experiment==selectedExp )
+    if(treatmentSubset[1] != "None selected") data <- subset(data, htm@wellSummary$treatment %in% treatmentSubset)
+    
+    qc <- data$wellQC
+    treatments <- htm@wellSummary$treatment 
+    
+  }
+  
+  plotTitle = ""
+  if(treatmentSubset[1] != "None selected") {
+    plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
+  } else {
+    plotTitle = paste(plotTitle,"All treatments",sep="\n")
+  }
+  
+  if(save2file) {
+    path = gfile("Save as...", type="save", initialfilename = paste0("Histogram__Mean_Corrected_Controls--",htmGetListSetting(htm,"statistics","transformation"),"--",htmGetListSetting(htm,"statistics","measurement"),".pdf"))
+    pdf(file=path)
+    print(path)
+  } else if(newdev){
+    dev.new()
+  }
+  
+  hist(data[[cx]], xlab=cx, main=plotTitle)
+  
+  if(save2file) {
+    dev.off()
+  }
+  
+  
+}
+
 
 
 
