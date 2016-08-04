@@ -1010,7 +1010,6 @@ guiHandler_ScatterPlotly_Data <- function(h,...){
   visible(w) <- T
 }
 
-
 guiHandler_ScatterPlot_Options <- function(h,...) {
   
   w <- gwindow("Scatter Plot Options", visible = F)
@@ -1881,7 +1880,7 @@ mbl$Plotting$"Heatmap"$handler = guiHandler_Heatmap_Data
 mbl$Analysis$"Quality control"$handler =  guiHandler_DataQCs
 mbl$Analysis$"Normalisation"$handler =  guiHandler_Normalisation
 mbl$Analysis$"Compute treatment summary"$handler =  guiHandler_TreatmentSummary
-mbl$Plotly-devel$"Scatter plotly"$handler = guiHandler_ScatterPlotly_Data
+mbl$Plotly_devel$"Scatter plotly"$handler = guiHandler_ScatterPlotly_Data
 
 
 #mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
