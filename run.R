@@ -23,15 +23,15 @@ if (!require("RColorBrewer")) {
   install.packages("RColorBrewer")
   library(RColorBrewer)
 }
-if (!require("EBImage")) {
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("EBImage")
-  library(EBImage)
-}
 if (!require("raster")) {
   install.packages("raster")
   library(raster)
 }
+if (!require("plotly")) {
+  install.packages("plotly")
+  library(plotly)
+}
+
 
 options(warn = 2)
 

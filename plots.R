@@ -819,6 +819,8 @@ htmJitterplot_Data <- function(htm=htm, cx, cy, .xlab="", .ylab="", treatmentSub
   
 }
 
+
+
 htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None selected", aggregate = "None selected", experimentSubset="None selected", treatmentSubset="None selected", newdev=T, action="plot") {
   
   
@@ -974,6 +976,160 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
   } 
   
 }
+
+
+
+htmScatterPlotly_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None selected", aggregate = "None selected", experimentSubset="None selected", treatmentSubset="None selected", newdev=T, action="plot") {
+  
+  
+  print("")
+  print("")
+  print("Scatter Plotly")
+  
+  data <- htm@data
+  
+  if(experimentSubset[1] != "None selected")  data <- subset(data, data[[htm@settings@columns$experiment]] %in% experimentSubset)
+  if(treatmentSubset[1] != "None selected") data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
+  
+  qc <- data$HTM_qc
+  treatments <- data[[htm@settings@columns$treatment]]
+  experiments <- data[[htm@settings@columns$experiment]]
+  
+  if(aggregate != "None selected") {
+    vx <- tapply(htm@data[[cx]], htm@data[[aggregate]], mean, na.rm=TRUE)
+    vy <- tapply(htm@data[[cy]], htm@data[[aggregate]], mean, na.rm=TRUE)
+  } else {
+    vx <- data[[cx]]
+    vy <- data[[cy]]
+  }
+  
+  
+  if( colorize != "None selected") {
+    if(aggregate != "None selected") {
+      .colors <- tapply(htm@data[[colorize]], htm@data[[aggregate]], function(z) {z[1]})
+    } else {
+      .colors = data[[colorize]]
+    }
+    n = length(unique(data[[colorize]]))
+    if(n<=8) {
+      col_pal <- brewer.pal(8,"Set2")
+    } else {
+      col_pal <- rainbow(n)
+    }
+    .colors = col_pal[factor(.colors)]
+  } else {
+    .colors = rep(1, length(vx))
+  }  
+  
+  
+  if(!is.null(qc)) {
+    print("  ..qc column exists!")
+    if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
+      pchQC = ifelse(qc==1, 16, 4)
+    } else {  # remove data points that did not pass QC
+      print("  not showing data points that failed QC")
+      vx = vx[which(qc==1)]
+      vy = vy[which(qc==1)]
+      data = data[which(qc==1),]
+      .colors = .colors[which(qc==1)]
+      treatments = treatments[which(qc==1)]
+      qc <- rep(1,length(vx))
+      pchQC = rep(16, length(vx))
+    }
+  } else {
+    print("  ..no qc column => show all data")
+    pchQC = rep(16,length(vx))
+  }
+  
+  
+  if(action=="plot") {
+    
+    #factors <- factor(treatments, levels=unique(treatments)) 
+    #palette(rainbow(length(unique(treatments)))) 
+    
+    #if(newdev){
+    #  dev.new()
+    #}
+    
+    dotsize = 0.75
+    #op <- par(mar = c(10,10,4,2) + 0.1) 
+    
+    if(htmGetListSetting(htm,"visualisation","scatterPlot_scaleFromZero_TF")==T) {
+      .ylim = c(0, max(vy))
+      .xlim = c(0, max(vx))
+    }
+    
+    
+    
+    # actual plotting
+    plotTitle = ""
+    if(experimentSubset[1] != "None selected") {
+      plotTitle = experimentSubset[1]
+    } else {
+      plotTitle = "All experiments"
+    }
+    
+    if(treatmentSubset[1] != "None selected") {
+      plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
+    } else {
+      plotTitle = paste(plotTitle,"All treatments",sep="\n")
+    }
+   
+    
+    if( colorize != "None selected") {
+      p <- plot_ly(x=vx, y=vy, mode = "markers", text=treatments, color=.colors)
+    } else {
+      p <- plot_ly(x=vx, y=vy, mode = "markers", text=treatments)
+    }
+    p <- layout(p, title = plotTitle, xaxis = list(title = cx), yaxis = list(title = cy)) 
+    print(p)
+    
+    
+    if( htmGetListSetting(htm,"visualisation","scatterPlot_showTreatmentMean_TF")==T) {
+      factors <- factor(treatments, levels=unique(treatments)) 
+      
+      # compute stats for plotting
+      vxMean = tapply(vx[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
+      vyMean = tapply(vy[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
+      colorsMean = tapply(.colors[which(qc==1)], factors[which(qc==1)], function(z) {z[1]})
+      
+      points(vxMean, vyMean, pch = 16, type = type, cex = 5*dotsize, main="", col=colorsMean)
+      cat("\nMean values:\n")
+      print(vxMean)
+      print(vyMean)
+      
+    } 
+    
+    return(0)
+    
+   
+    linefit = FALSE
+    if(linefit) {
+      fit <- lm(vy~vx)
+      print(fit)
+      yfit = predict(fit, list(vx=vx))
+      lines(vx,yfit,col="red",lwd=2)
+      #fit <- lm(vx~vy)
+      #print(fit)
+      #xfit = predict(fit, list(vy=vy))
+      #lines(xfit,vy,col="blue",lwd=2)
+      #pcaFit(vx,vy)
+    }
+    
+  }
+  
+  
+  if(action=="click") {
+    print("")
+    i <- identify(vx, vy, n = 1, plot = FALSE)
+    print(paste(cx,"=",data[i,cx]))
+    print(paste(cy,"=",data[i,cy]))
+    print(paste("treatment =",treatments[i]))
+    htmShowDataFromRow(htm, data, i)
+  } 
+  
+}
+
 
 
 
