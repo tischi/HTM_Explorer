@@ -1,10 +1,4 @@
 #
-# Development
-#
-
-
-
-#
 # GUI helper functions
 #
 
@@ -163,6 +157,15 @@ gui_makeListSettingGuiTable <- function(setting,keys,container,type="numeric") {
   return(tbl)
   
 }
+
+guiShowHelpFile <- function(help_file) {
+    
+    help_path = paste0(htmPath,"/help/") 
+    renderMarkdown(paste0(help_path,help_file),output=paste0(help_path,"tmp.html"))
+    browseURL(paste0(help_path,"tmp.html"))
+    
+}
+
 
 
 #
@@ -1170,14 +1173,6 @@ guiHandler_SetColumns <- function(h, ...) {
   
   }
 
-guiShowHelpFile <- function(help_file) {
-  
-  help_path = paste0(htmPath,"/help/") 
-  renderMarkdown(paste0(help_path,help_file),output=paste0(help_path,"tmp.html"))
-  browseURL(paste0(help_path,"tmp.html"))
-  
-}
-
 guiHandler_ImageQCs <- function(h, ...) {
   w <- gwindow("Image QC Add/Remove", visible=F)
   gp <- ggroup(horizontal = FALSE, container=w)
@@ -1507,7 +1502,6 @@ guiHandler_htmSaveSetttings <- function(h,...){
 
 
 
-
 ############
 # MENU BAR #
 ############
@@ -1519,20 +1513,20 @@ mbl$Tables$"Load & merge two tables"$handler =  guiHandler_LoadAndMergeDataTable
 mbl$Tables$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
 mbl$Tables$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
 mbl$Tables$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
+
 mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
 mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
 mbl$Configure$"Configure assay columns"$handler = guiHandler_SetColumns
 mbl$Configure$"Configure visualisation settings"$handler = guiHandler_VisualisationSettings
+
 mbl$Plotting$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
 mbl$Plotting$"Jitter plot"$handler = guiHandler_JitterPlot_Data
 mbl$Plotting$"Heatmap"$handler = guiHandler_Heatmap_Data
+
 mbl$Analysis$"Quality control"$handler =  guiHandler_DataQCs
 mbl$Analysis$"Normalisation"$handler =  guiHandler_Normalisation
 mbl$Analysis$"Treatment summary"$handler =  guiHandler_TreatmentSummary
 #mbl$Plotly_devel$"Scatter plotly"$handler = guiHandler_ScatterPlotly_Data
-
-
-#mbl$Main$"Reinitialise"$handler = guiHandler_NewHTM
 
 mbl$Help$"About"$handler =  function(h,...) { guiShowHelpFile("version.md") }
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
@@ -1541,43 +1535,7 @@ mbl$Help$"Visualisation settings"$handler =  function(h,...) { guiShowHelpFile("
 mbl$Help$"A typical Workflow"$handler =  function(h,...) { guiShowHelpFile("typical_usage.md") }
 
 
-#mbl$DO_NOT_USE_Plot$"Heatmap"$handler = guiHandler_Heatmap
-#mbl$DO_NOT_USE_Plot$"Scatter plot"$handler = guiHandler_ScatterPlot
-#mbl$DO_NOT_USE_Plot$"Jitter plot"$handler = guiHandler_JitterPlot
-
-
-#mbl$Plot$"Treatment summary plot"$handler = guiHandler_TreatmentSummarySortedValuesPlot
-
-#mbl$DO_NOT_USE_Analysis$"Assay overview"$handler = guiHandler_htmOverview
-#mbl$DO_NOT_USE_Analysis$"Image QC"$handler = guiHandler_ImageQCs
-#mbl$Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormalise 
-#mbl$DO_NOT_USE_Analysis$"Statistical analysis"$handler = guiHandler_AverageAndNormaliseMultipleFeatures
-
-#mbl$Tables$"Image table"$"View"$handler = function(h,...) { edit(htm@data) }
-#mbl$Tables$"Image table"$"Load"$handler = guiHandler_LoadImageTable
-#mbl$Tables$"Image table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
-#mbl$Tables$"Object Table"$"View"$handler = function(h,...) { edit(htm@objectdata) }
-#mbl$Tables$"Object Table"$"Load"$handler = guiHandler_LoadObjectTable
-#mbl$Tables$"Object Table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "objectdata", path)}
-#mbl$Tables$"Position table"$"View"$handler = function(h,...) { edit(htm@wellSummary) }
-#mbl$Tables$"Position table"$"Save"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "wellSummary", path)}
-#mbl$Tables$"Treatment table"$"View"$handler = function(h,...) { edit(htm@treatmentSummary) }
-#mbl$Tables$"Treatment table"$"Save"$handler =  function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "treatmentSummary", path)}
-
-
-
-#mbl$Special$"Add columns"$handler = guiHandler_AddColumns
-
-#mbl$About$HTM_Explorer$handler = function(h,...) print("High Throughput Microscopy Explorer by ALMF@EMBL.DE")
-
-
 w <- gwindow("HTM Explorer",visible=F,width=500,height=20)
 mb <- gmenu(mbl, container=w)
 visible(w) <- T
 
-
-
-#tbl <- list()
-#tbl$New <- list(icon="new",handler = function(...) print("new"))
-#tbl$Print <- list(icon="print",handler = function(...) print("print"))
-#tb <- gtoolbar(tbl, container=w)
