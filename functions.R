@@ -883,15 +883,15 @@ htmTreatmentSummary_Data <- function(htm) {
                         controls=rep(negative_ctrl,numEntries),  
                         treatment=rep(NA,numEntries),
                         batches = rep(NA,numEntries),
-                        z_scores = rep(NA,numEntries),
-                        median__z_scores = rep(NA,numEntries),
+                        means = rep(NA,numEntries),
+                        median__means = rep(NA,numEntries),
+                        #z_scores = rep(NA,numEntries),
+                        #median__z_scores = rep(NA,numEntries),
                         
                         t_test__estimate=rep(NA,numEntries),
                         t_test__p_value=rep(NA,numEntries),
                         t_test__signCode=rep(NA,numEntries),
                         
-                        means = rep(NA,numEntries),
-                        median__means = rep(NA,numEntries),
                         
                         #z_score__allBatches=rep(NA,numEntries),
                         #robust_z_score__allBatches=rep(NA,numEntries),
@@ -1045,14 +1045,14 @@ htmTreatmentSummary_Data <- function(htm) {
   
     i = i + 1
     results$treatment[i] <- treat
+    results$batches[i] = batches
+    results$means[i] = means
+    results$median__means[i] = median__means
     results$t_test__p_value[i] = t_test__p_value
     results$t_test__signCode[i] = t_test__signCode
     results$t_test__estimate[i] = t_test__estimate
-    results$median__means[i] = median__means
-    results$batches[i] = batches
-    results$z_scores[i] = z_scores
-    results$means[i] = means
-    results$median__z_scores[i] = median__z_scores
+    #results$z_scores[i] = z_scores
+    #results$median__z_scores[i] = median__z_scores
     results$numObjectsOK[i] = sum(d_treated$count)
     results$numImagesOK[i] = nrow(d_treated)
     results$numReplicatesOK[i]= length(unique(d_treated$experiment))
