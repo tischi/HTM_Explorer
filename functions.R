@@ -1311,7 +1311,7 @@ htmObjectNormalization <- function(htm) {
 
 
 #
-# Generic data normalisation
+# Data normalisation
 #
 
 htmNormalization <- function(htm) {
@@ -1321,287 +1321,287 @@ htmNormalization <- function(htm) {
   print("*" )
   print("")
   
+  # get data
   data <- htm@data
   
+  # remove previously computed columns
+  drops = names(data)[which(grepl("HTM_norm", names(data)))]
+  data <- data[ ,!(names(data) %in% drops)]
+  
+  
   # get all necessary information
-  measurement <- htmGetListSetting(htm,"statistics","measurement")
+  measurements = htmGetVectorSettings("statistics$measurements") 
   experiments <- sort(unique(data[[htm@settings@columns$experiment]]))
   transformation <- htmGetListSetting(htm,"statistics","transformation")
   gradient_correction <- htmGetListSetting(htm,"statistics","gradient_correction")
   normalisation <- htmGetListSetting(htm,"statistics","normalisation")
   negcontrols <- c(htmGetListSetting(htm,"statistics","negativeControl"))
-  
-  cat("\nMeasurement:\n")
-  print(measurement)
-  cat("\nNegative Control:\n")
-  print(negcontrols)
-  
-  #
-  # Check           
-  #
-  if(measurement=="None selected") {
-    cat("\n\nError: please select a measurement!\n\n")
-    return(htm)
-  }
-  if( ! (measurement %in% names(htm@data)) ) {
-    cat(names(htm@data))
-    cat("\nError: selected measurement is none of above data column names!\n")
-    return(htm)
-  }
-  
-  
-  #
-  # Analyze
-  #
-  print("Performing quality cntrol:")
-  htm <- htmApplyQCs(htm)
-  
-  print(paste("Total data points",length(data$HTM_qc)))
-  print(paste("Valid data points",sum(data$HTM_qc)))
-  
-  # init
-  manipulation <- "__"
-  input <- measurement
-  
-  # Log2
-  if(transformation == "log2") {
-    
-    print("")
-    print("Log2:")
-    print(paste("  Input:", input))
-    
-    # compute log transformation
-    # create new column name
-    manipulation <- paste0(manipulation,"log2__")
-    
-    output = paste0("HTM_norm",manipulation,measurement)
-    
-    idsGtZero <- which(data[[input]]>0)
-    idsSmEqZero <- which(data[[input]]<=0)
-    data[idsGtZero,output] <- log2(data[idsGtZero,input]) 
-    data[idsSmEqZero,output] <- NaN
-    print(paste("  Output:", output))
-    print(paste("  Number of data points:",length(data[[input]])))
-    print(paste("  NaN's due to <=0:",length(idsSmEqZero)))
-    
-    # todo: this should be at a more prominent position
-    #print("Replacing -Inf in log scores ******************************")
-    #logScores = data[[output]]
-    #finiteLogScores = subset(logScores,is.finite(logScores))
-    #minimum = min(finiteLogScores)
-    #idsInf = which(is.infinite(logScores))
-    #logScores[idsInf] <- minimum
-    #data[[output]] <- logScores
-    
-    #htmAddLog("Replacing Infinities in Log2 Score by")
-    #htmAddLog(minimum)
-    #htmAddLog("Affected Wells:")
-    #for(id in idsInf) {
-    #  htmAddLog(htm@wellSummary$treatment[id])
-    #  htmAddLog(htm@wellSummary$wellQC[id])
-    #  htmAddLog(htm@wellSummary[id,logScoreName])
-    #  htmAddLog("")
-    #}
-    
-    input <- output
-    
-  } # if log transformation
-  
-  
-  if(gradient_correction == "median_polish") {
-    
-    print(paste("  median polish of", input))
-    
-    # also store the background
-    gradient = paste0("HTM_norm",paste0(manipulation,"__medpolish_gradient__"),measurement)
-    
-    manipulation <- paste0(manipulation,"__medpolish_residuals__")
-    output = paste0("HTM_norm",manipulation,measurement)
-    
-    data[[output]] = rep(NA,nrow(data))
-    
-    for(experiment in experiments) {
-        
-      print("")
-      print(paste("  Experiment:",experiment))
-        
-      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      #indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
-        
-      # extract values
-      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
-      mp = htmMedpolish(x=xy$x, y=xy$y, val=data[indices_all, input])
-      
-      data[indices_all, output] = mp$residuals
-      data[indices_all, gradient] = mp$gradient
-      
-    } # experiment loop
-    
-    input <- output
-    
-  } #medpolish
-  
-  
-  
-  if( gradient_correction %in% c("median_7x7","median_5x5","median_3x3")) {
-    
-    print(paste("  median filter of", input))
-    
-    gradient = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__gradient__"),measurement)
-    manipulation <- paste0(manipulation,"__",gradient_correction,"__residuals__")
-    output = paste0("HTM_norm",manipulation,measurement)
-    
-    data[[output]] = rep(NA,nrow(data))
-    
-    for(experiment in experiments) {
-      
-      print(paste("  Experiment:",experiment))
-      
-      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
-      
-      xy = htm_convert_wellNum_to_xy(data[indices_ok, htm@settings@columns$wellnum]) 
-    
-      if(gradient_correction == "median_7x7") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=7)
-      }
-      if(gradient_correction == "median_5x5") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=5)
-      }
-      if(gradient_correction == "median_3x3") {
-        mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=3)
-      }
-      
-      data[indices_ok, output] = mp$residuals
-      data[indices_ok, gradient] = mp$gradient
-      
-    } # experiment loop
-    
-    input <- output
-    
-  } #median filter
 
   
-  if( gradient_correction %in% c("z_score_5x5")) {
-    # Mean = E(X)
-    # Variance = E(X^2)-E(X)^2
-    # Z-Score = (Xi - E(X)) / Sqrt(E(X^2)-E(X)^2)
-    
-    print(paste("  5x5 z-score filter of", input))
-    
-    # also store the background
-    standard_deviation = paste0("HTM_norm",paste0(manipulation,"__5x5_standard_deviation__"),measurement)
-    mean_value = paste0("HTM_norm",paste0(manipulation,"__5x5_mean__"),measurement)
-    manipulation <- paste0(manipulation,"__5x5_z_score__")
-    output = paste0("HTM_norm",manipulation,measurement)
-    
-    data[[output]] = rep(NA,nrow(data))
-    data[[standard_deviation]] = rep(NA,nrow(data))
-    data[[mean_value]] = rep(NA,nrow(data))
-    
-    for(experiment in experiments) {
+  # compute
+  for (measurement in measurements) {
       
-      print(paste("  Experiment:",experiment))
-      
-      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+    cat("\nMeasurement:\n")
+    print(measurement)
+    cat("\nNegative Control:\n")
+    print(negcontrols)
   
-      mp = htmLocalZScore(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
-      
-      data[indices_all, mean_value] = mp$avg
-      data[indices_all, standard_deviation] = mp$sd
-      data[indices_all, output] = mp$z
-      
-      
-    } # experiment loop
+    #
+    # Check           
+    #
+    if( ! (measurement %in% names(data)) ) {
+      cat(names(data))
+      cat("\nError: selected measurement does exist in data columns!\n")
+      return(htm)
+    }
+  
+    #
+    # Analyze
+    #
     
-    input <- output
+    manipulation <- "__"
+    input <- measurement
+  
+    # Log2
+    if(transformation == "log2") {
     
-  } #median filter
+        print("")
+        print("Log2:")
+        print(paste("  Input:", input))
+        
+        # compute log transformation
+        # create new column name
+        manipulation <- paste0(manipulation,"log2__")
+        
+        output = paste0("HTM_norm",manipulation,measurement)
+        
+        idsGtZero <- which(data[[input]]>0)
+        idsSmEqZero <- which(data[[input]]<=0)
+        data[idsGtZero,output] <- log2(data[idsGtZero,input]) 
+        data[idsSmEqZero,output] <- NaN
+        print(paste("  Output:", output))
+        print(paste("  Number of data points:",length(data[[input]])))
+        print(paste("  NaN's due to <=0:",length(idsSmEqZero)))
+        
+        # todo: this should be at a more prominent position
+        #print("Replacing -Inf in log scores ******************************")
+        #logScores = data[[output]]
+        #finiteLogScores = subset(logScores,is.finite(logScores))
+        #minimum = min(finiteLogScores)
+        #idsInf = which(is.infinite(logScores))
+        #logScores[idsInf] <- minimum
+        #data[[output]] <- logScores
+        
+        #htmAddLog("Replacing Infinities in Log2 Score by")
+        #htmAddLog(minimum)
+        #htmAddLog("Affected Wells:")
+        #for(id in idsInf) {
+        #  htmAddLog(htm@wellSummary$treatment[id])
+        #  htmAddLog(htm@wellSummary$wellQC[id])
+        #  htmAddLog(htm@wellSummary[id,logScoreName])
+        #  htmAddLog("")
+        #}
+        
+        input <- output
+    
+      } # if log transformation
   
   
+      if(gradient_correction == "median_polish") {
+        
+        print(paste("  median polish of", input))
+        
+        # also store the background
+        gradient = paste0("HTM_norm",paste0(manipulation,"__medpolish_gradient__"),measurement)
+        
+        manipulation <- paste0(manipulation,"__medpolish_residuals__")
+        output = paste0("HTM_norm",manipulation,measurement)
+        
+        data[[output]] = rep(NA,nrow(data))
+        
+        for(experiment in experiments) {
+            
+          print("")
+          print(paste("  Experiment:",experiment))
+            
+          indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+          #indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+            
+          # extract values
+          xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+          mp = htmMedpolish(x=xy$x, y=xy$y, val=data[indices_all, input])
+          
+          data[indices_all, output] = mp$residuals
+          data[indices_all, gradient] = mp$gradient
+          
+        } # experiment loop
+        
+        input <- output
+        
+      } #medpolish
+      
+      
+      
+      if( gradient_correction %in% c("median_7x7","median_5x5","median_3x3")) {
+        
+        print(paste("  median filter of", input))
+        
+        gradient = paste0("HTM_norm",paste0(manipulation,"__",gradient_correction,"__gradient__"),measurement)
+        manipulation <- paste0(manipulation,"__",gradient_correction,"__residuals__")
+        output = paste0("HTM_norm",manipulation,measurement)
+        
+        data[[output]] = rep(NA,nrow(data))
+        
+        for(experiment in experiments) {
+          
+          print(paste("  Experiment:",experiment))
+          
+          indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+          indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+          
+          xy = htm_convert_wellNum_to_xy(data[indices_ok, htm@settings@columns$wellnum]) 
+        
+          if(gradient_correction == "median_7x7") {
+            mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=7)
+          }
+          if(gradient_correction == "median_5x5") {
+            mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=5)
+          }
+          if(gradient_correction == "median_3x3") {
+            mp = htmLocalMedian(x=xy$x, y=xy$y, val=data[indices_ok, input], size=3)
+          }
+          
+          data[indices_ok, output] = mp$residuals
+          data[indices_ok, gradient] = mp$gradient
+          
+        } # experiment loop
+        
+        input <- output
+        
+      } #median filter
+    
+      
+      if( gradient_correction %in% c("z_score_5x5")) {
+        # Mean = E(X)
+        # Variance = E(X^2)-E(X)^2
+        # Z-Score = (Xi - E(X)) / Sqrt(E(X^2)-E(X)^2)
+        
+        print(paste("  5x5 z-score filter of", input))
+        
+        # also store the background
+        standard_deviation = paste0("HTM_norm",paste0(manipulation,"__5x5_standard_deviation__"),measurement)
+        mean_value = paste0("HTM_norm",paste0(manipulation,"__5x5_mean__"),measurement)
+        manipulation <- paste0(manipulation,"__5x5_z_score__")
+        output = paste0("HTM_norm",manipulation,measurement)
+        
+        data[[output]] = rep(NA,nrow(data))
+        data[[standard_deviation]] = rep(NA,nrow(data))
+        data[[mean_value]] = rep(NA,nrow(data))
+        
+        for(experiment in experiments) {
+          
+          print(paste("  Experiment:",experiment))
+          
+          indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+          xy = htm_convert_wellNum_to_xy(data[indices_all, htm@settings@columns$wellnum]) 
+      
+          mp = htmLocalZScore(x=xy$x, y=xy$y, val=data[indices_all, input], size=5)
+          
+          data[indices_all, mean_value] = mp$avg
+          data[indices_all, standard_deviation] = mp$sd
+          data[indices_all, output] = mp$z
+          
+          
+        } # experiment loop
+        
+        input <- output
+        
+      } #median filter
+      
+      
+      
+      if(normalisation != "None selected") {
+        
+        print("")
+        print("Per batch normalisation:")
+        print(paste("  Method:",normalisation))
+        print(paste("  Input:",input))
+        
+        # init columns
+        manipulation <- paste0(manipulation,normalisation,"__")
+        output = paste0("HTM_norm",manipulation,measurement)
+        data[[output]] = NA
+        print(paste("  Output:",output))
+        
+        # computation
+        #cat("\nComputing normalisations...\n")
+        
+        for(experiment in experiments) {
+          
+          #print("")
+          #print(paste("  Experiment:",experiment))
+          
+          indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
+          indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+          
+          if("all treatments" %in% negcontrols) {
+            indices_controls_ok <- indices_ok
+          } else {
+            indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) 
+                                         & !is.na(data[[input]]) 
+                                         & (data$HTM_qc) 
+                                         & (data[[htm@settings@columns$treatment]] %in% negcontrols))
+          }
+          
+          #print(paste("   Total", length(indices_all)))
+          #print(paste("   Valid", length(indices_ok)))      
+          #print(paste("   Valid Control", length(indices_controls_ok)))
+          
+          # extract control values 
+          valuescontrol <- data[indices_controls_ok, input]
+          #print(valuescontrol)
+          
+          nr_of_controls <-  length(valuescontrol)
+          meancontrol <- mean(valuescontrol)    
+          sigmacontrol <- sd(valuescontrol) 
+          mediancontrol <- median(valuescontrol)
+          madcontrol <- mad(valuescontrol)  
+          semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
+          #print(paste("    Control Mean:", meancontrol))
+          #print(paste("    Control SD:", sigmacontrol))
+          #print(paste("    Control Median:", mediancontrol))
+          #print(paste("    Control MAD:", madcontrol))
+          
+          if(normalisation == "z_score") {
+            data[indices_all, output] <- ( data[indices_all, input] - meancontrol ) / sigmacontrol
+          } 
+          else if(normalisation == "robust_z_score") {
+            data[indices_all, output] <- ( data[indices_all, input] - mediancontrol ) / madcontrol
+          } 
+          else if(normalisation == "subtract_mean_ctrl") {
+            data[indices_all, output] <- data[indices_all, input] - meancontrol 
+          }
+          else if(normalisation == "divide_by_mean_ctrl") {
+            data[indices_all, output] <- data[indices_all, input] / meancontrol 
+          }
+          else if(normalisation == "subtract_median_ctrl") {
+            data[indices_all, output] <- data[indices_all, input] - mediancontrol 
+          }
+          else if(normalisation == "divide_by_median_ctrl") {
+            data[indices_all, output] <- data[indices_all, input] / mediancontrol 
+          }
+          
+        } # experiment loop
+        
+        input <- output
+      
+      } # if normalisation
   
-  if(normalisation != "None selected") {
-    
-    print("")
-    print("Per batch normalisation:")
-    print(paste("  Method:",normalisation))
-    print(paste("  Input:",input))
-    
-    # init columns
-    manipulation <- paste0(manipulation,normalisation,"__")
-    output = paste0("HTM_norm",manipulation,measurement)
-    data[[output]] = NA
-    print(paste("  Output:",output))
-    
-    # computation
-    #cat("\nComputing normalisations...\n")
-    
-    for(experiment in experiments) {
-      
-      #print("")
-      #print(paste("  Experiment:",experiment))
-      
-      indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-      indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
-      
-      if("all treatments" %in% negcontrols) {
-        indices_controls_ok <- indices_ok
-      } else {
-        indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) 
-                                     & !is.na(data[[input]]) 
-                                     & (data$HTM_qc) 
-                                     & (data[[htm@settings@columns$treatment]] %in% negcontrols))
-      }
-      
-      #print(paste("   Total", length(indices_all)))
-      #print(paste("   Valid", length(indices_ok)))      
-      #print(paste("   Valid Control", length(indices_controls_ok)))
-      
-      # extract control values 
-      valuescontrol <- data[indices_controls_ok, input]
-      #print(valuescontrol)
-      
-      nr_of_controls <-  length(valuescontrol)
-      meancontrol <- mean(valuescontrol)    
-      sigmacontrol <- sd(valuescontrol) 
-      mediancontrol <- median(valuescontrol)
-      madcontrol <- mad(valuescontrol)  
-      semcontrol <- sigmacontrol/sqrt(nr_of_controls)     
-      #print(paste("    Control Mean:", meancontrol))
-      #print(paste("    Control SD:", sigmacontrol))
-      #print(paste("    Control Median:", mediancontrol))
-      #print(paste("    Control MAD:", madcontrol))
-      
-      if(normalisation == "z_score") {
-        data[indices_all, output] <- ( data[indices_all, input] - meancontrol ) / sigmacontrol
-      } 
-      else if(normalisation == "robust_z_score") {
-        data[indices_all, output] <- ( data[indices_all, input] - mediancontrol ) / madcontrol
-      } 
-      else if(normalisation == "subtract_mean_ctrl") {
-        data[indices_all, output] <- data[indices_all, input] - meancontrol 
-      }
-      else if(normalisation == "divide_by_mean_ctrl") {
-        data[indices_all, output] <- data[indices_all, input] / meancontrol 
-      }
-      else if(normalisation == "subtract_median_ctrl") {
-        data[indices_all, output] <- data[indices_all, input] - mediancontrol 
-      }
-      else if(normalisation == "divide_by_median_ctrl") {
-        data[indices_all, output] <- data[indices_all, input] / mediancontrol 
-      }
-      
-    } # experiment loop
-    
-    input <- output
-  }
+    } # measurement loop
   
   return(data)
   
 }
-
-
 
 #
 # Select a subset of the data
@@ -1758,8 +1758,6 @@ htmComputeCombinedVector <- function(htm) {
   
 }
 
-
-
 htmMultiChannelFeatureNormalization <- function(htm) {
   
   print("")
@@ -1837,7 +1835,6 @@ htmMultiChannelFeatureNormalization <- function(htm) {
   return(htm@data)
   
 }
-
 
 htmWellSummary <- function(htm) {
       
@@ -2235,8 +2232,6 @@ htmWellSummary <- function(htm) {
   return(htm@wellSummary)
     
 }
-
-
 
 htmTreatmentSummary_Data <- function(htm) {
   

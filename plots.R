@@ -1132,11 +1132,79 @@ htmScatterPlotly_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="Non
 
 
 
+server_scatter_plot <- function(input, output, session) {
+  
+  output$plot <- renderPlotly({
+    vx <- htm@data[[htm@settings@visualisation$cx]]
+    vy <- htm@data[[htm@settings@visualisation$cy]]
+    plot_ly(x = vx, y = vy, mode = "markers") 
+    layout(p, xaxis = list(title = ""), 
+           yaxis = list(title = ""))
+  })
+  
+  output$info <- renderPrint({
+    print(htm@settings@visualisation$cx)
+    print(htm@settings@visualisation$cy)
+  })
+  
+  output$selection <- renderPrint({
+    s <- event_data("plotly_click")
+    if (length(s) == 0) {
+      "Click on a data point!"
+    } else {
+      print("You selected:")
+      print(s)
+      i = s[['pointNumber']]
+      print(data[i,])
+      htmShowDataFromRow(htm,data,i)
+      #print("Launching Fiji now....")
+      #system(fiji_binary,wait=F)
+    }
+  })
+  
+}
+
+
+ui_scatter_plot <- fluidPage(
+  mainPanel(
+    plotlyOutput("plot")
+  ),
+  verbatimTextOutput("selection"),
+  verbatimTextOutput("info")
+  
+)
+
+
 
 htmShowHeatmapData <- function(htm, selectedExp="", selectedMeasurement, markQC = T, width = htm@settings@visualisation$heatmap_width, 
                                colorLUT.autoscale = F, colorLUT.min = 0, colorLUT.max = 100, newdevice = T, 
                                show_gradient_correction = F, action="plot")  {
   
+  
+    #
+    # CHECK
+    #
+    
+    if( is.null(htm@settings@columns$wellnum) || !(htm@settings@columns$wellnum %in% colnames(htm@data)) )  {
+        gmessage("Error: Position/Well column not found.")
+        return(NULL)
+    }
+    if( is.null(htm@settings@columns$posnum) || !(htm@settings@columns$posnum %in% colnames(htm@data)) )  {
+        gmessage("Error: Sub-position column not found.")
+        return(NULL)
+    }
+    if( is.null(htm@settings@columns$experiment) ||!(htm@settings@columns$experiment %in% colnames(htm@data)) )  {
+        gmessage("Error: Experimental batch column not found.")
+        return(NULL)
+    }
+    if( is.null(htm@settings@columns$treatment) ||!(htm@settings@columns$treatment %in% colnames(htm@data)) )  {
+        gmessage("Error: Treatment column not found.")
+        return(NULL)
+    }
+    
+    #
+    # Get data
+    #
   
   dat <- subset(htm@data,(htm@data[[htm@settings@columns$experiment]]==selectedExp))
   dat[[selectedMeasurement]] = as.numeric( dat[[selectedMeasurement]] )

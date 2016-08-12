@@ -1,4 +1,228 @@
 
+guiHandler_AverageAndNormaliseMultipleFeatures <- function(h,...){
+    
+    if(is.null(htm@settings@columns$treatment)) {
+        gmessage("You need to first specify the treatment column [Main..Configure..Assay columns]!")
+        return(NULL)
+    }
+    
+    
+    w <- gwindow("Statistical Analysis", visible=F)
+    
+    # gui_ListSetting <- function(text, setting, key, choices, container) {
+    
+    
+    htm <- get("htm", envir = globalenv())
+    
+    if( htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T)
+    { 
+        
+        gui_AddRemoveVectorSetting(setting="statistics$ObjectFeatureSelection",
+                                   name=" Object features to be analyzed: ",
+                                   choices = colnames(htm@objectdata),
+                                   container = w, showSelected=F)  
+        
+    } else {
+        
+        gui_AddRemoveVectorSetting(setting="statistics$ImageFeatureSelection",
+                                   name=" Image features to be analyzed: ",
+                                   choices = colnames(htm@data),
+                                   container = w, showSelected=F)  
+        
+        gui_ListSettingDropdown(text = "  Method to average images within one position (well): ",
+                                setting = "statistics",
+                                key = "wellSummaryMethod",
+                                choices = c("weighted_mean_of_images","mean_of_images","median_of_images"),
+                                default = "weighted_mean_of_images",
+                                container = w)
+        
+        gui_ListSettingDropdown(text = "  Number of objects per image:  ",
+                                setting = "statistics",
+                                key = "objectCount",
+                                choices = colnames(htm@data),
+                                default = colnames(htm@data)[1],
+                                container = w)
+        
+        gui_ListSettingTextfield(text = "  Well QC: Minimum number of valid objects:  ",
+                                 setting = "statistics",
+                                 key = "WellQC_Minimum_Number_Objects",
+                                 type = "numeric",
+                                 default = 100,
+                                 container = w)
+        
+        
+        htmSetListSetting(htm, "statistics","treatmentWithinReplicateSummaryMethod","mean_of_wells", gui=T)
+        
+    } # image/well based stats
+    
+    
+    
+    gui_ListSettingDropdown(text = "  Negative control  ",
+                            setting = "statistics",
+                            key = "negativeControl",
+                            choices = c("all treatments",sort(unique(htm@data[[htm@settings@columns$treatment]]))),
+                            default = colnames(htm@data)[1],
+                            container = w)
+    
+    
+    gui_ListSettingDropdown(text = "  Data transformation  ",
+                            setting = "statistics",
+                            key = "transformation",
+                            choices = c("log2","none"),
+                            default = "log2",
+                            container = w)
+    
+    
+    obj <- glabel("   ", container = w)
+    gg <- ggroup(horizontal = TRUE, container=w, expand=T)
+    obj <- gbutton(" Analyze", container = gg, handler = function(h,...) {
+        
+        if(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T) { 
+            featureList = htmGetVectorSettings("statistics$ObjectFeatureSelection") 
+        } else {
+            featureList = htmGetVectorSettings("statistics$ImageFeatureSelection") 
+        }
+        
+        # initialisation of the treatment stats
+        htm <- get("htm", envir = globalenv())
+        htm@other$treatmentSummaryList <- NULL; htm@other$treatmentSummaryList = list()
+        htm@other$treatmentSummaryMerge <- NULL; htm@other$treatmentSummaryMerge = data.frame()
+        assign("htm", htm, envir = globalenv())
+        
+        for (feature in featureList) {
+            
+            # image QC
+            htm <- get("htm", envir = globalenv())
+            htm <- htmApplyImageQCs(htm)
+            assign("htm", htm, envir = globalenv())
+            
+            print(feature)
+            htmSetListSetting(htm,"statistics","measurement",feature,gui=T)
+            
+            # well summary and normalisation (based on per_image values)
+            if(!(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T)) { 
+                htm <- get("htm", envir = globalenv())
+                htm@wellSummary <- htmWellSummary(htm)
+                assign("htm", htm, envir = globalenv())
+            }
+            
+            # image normalisation for image based statistics
+            if( htmGetListSetting(htm,"statistics","compute_image_based_stats_TF", gui=T) == T ) {
+                htm <- get("htm", envir = globalenv())
+                htm@data <- htmImageNormalization(htm)
+                assign("htm", htm, envir = globalenv())
+            }
+            
+            # cell normalisation for cell based statistics
+            if(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T ) {
+                htm <- get("htm", envir = globalenv())
+                htm@objectdata <- htmObjectNormalization(htm)
+                assign("htm", htm, envir = globalenv())
+            }
+            
+            # treatment statistics: well based, image based and cell based
+            htm <- get("htm", envir = globalenv())
+            htm@treatmentSummary <- htmTreatmentSummary(htm)
+            assign("htm", htm, envir = globalenv())    
+            
+            # save treatment summary
+            path = gfile("Save as...", type="save", initialfilename = paste0("TreatmentSummary--",htmGetListSetting(htm,"statistics","transformation",gui=T),"--",htmGetListSetting(htm,"statistics","measurement",gui=T),".csv"))
+            htmSaveDataTable(htm, "treatmentSummary", path)
+            
+            # store all the treatment summaries in a list
+            if( htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T ) {
+                readouts = c('t_test__objects__p_value','z_score__allBatches__per_object')
+            } else {
+                readouts = c('z_score__allBatches')
+            }
+            
+            tablename = paste0("TreatmentSummary__",feature)
+            htm <- get("htm", envir = globalenv())
+            htm@other$treatmentSummaryList[[tablename]] <- data.frame(htm@treatmentSummary) # this syntax ensures that the data really is copied and not only a pointer to htm is stored in the list
+            
+            for(readout in readouts) { # add featurename to columnname
+                colnames(htm@other$treatmentSummaryList[[tablename]])[which(names(htm@other$treatmentSummaryList[[tablename]] ) == readout)] <- paste(readout,feature,sep="__")
+            }
+            #print(readout)
+            #print(colnames(htm@other$treatmentSummaryList[[tablename]]))
+            assign("htm", htm, envir = globalenv())    
+            
+        }
+        
+        
+        #if(0) {
+        #  l <- htmImageMultiFeatureAnalysis(htm, readout)
+        #  htm@data <- l$images
+        #  htm@other$treatFeat <- l$treatFeat
+        #  htm@other$MDS <- htmMDStreatFeat(htm@other$treatFeat, negCtrl=htmGetListSetting(htm,"statistics","negativeControl"))
+        #  assign("htm", htm, envir = globalenv())    
+        #  htmHeatmap_treatFeat(htm@other$treatFeat,-3,3)
+        #}
+        
+        
+        # compute summary table with all features
+        if(length(readouts)>1) {
+            print("")
+            print("More than one readout selected. Merging into one table...")
+            
+            for (readout in readouts) {
+                
+                mergeTableName = paste0(readout,"__merged")
+                
+                # compute summary table with all features
+                print("Joining results...")
+                htm <- get("htm", envir = globalenv())
+                d <- join_all(htm@other$treatmentSummaryList,"treatment")
+                htm@other[[mergeTableName]] <- subset(d,select=c("treatment",colnames(d)[which(grepl(paste0("^",readout),colnames(d)))]))
+                # move treatment annotation from colunm to rownames
+                rownames(htm@other[[mergeTableName]]) <- htm@other[[mergeTableName]]$treatment
+                htm@other[[mergeTableName]]$treatment <- NULL
+                assign("htm", htm, envir = globalenv())    
+                
+                # show heatmap
+                print(readout)
+                
+                # save table
+                if(!(htmGetListSetting(htm,"statistics","compute_cell_based_stats_TF", gui=T) == T)) { 
+                    plotHeatmap_treatFeat(htm@other[[mergeTableName]], -3, 3, rotate=T, readout=readout)
+                    initialfilename = paste0("MultiFeatureAnalysis__",readout,"__per_well_stats.csv")
+                } else {
+                    plotHeatmap_treatFeat(htm@other[[mergeTableName]], -2, 2, rotate=T, readout=readout)
+                    initialfilename = paste0("MultiFeatureAnalysis__",readout,"__per_cell_stats.csv")
+                }
+                path = gfile("Save as...", type="save", initialfilename = initialfilename)
+                htmSaveDataTable(htm, paste0("other$",mergeTableName), path)
+            }
+            
+            
+            # compute MDS
+            #htm@other$MDS <- htmMDStreatFeat(htm@other$treatSumMerge,negCtrl=htmGetListSetting(htm,"statistics","negativeControl"))
+            #scatterLabelPlot_treatFeat(htm@other$MDS,"x","y")
+            
+            #htm@other$treatSumMerge <- subset(d,select=c("treatment",colnames(d)[which(grepl(paste0("^",readout),colnames(d)))]))
+            
+        }
+        
+        ## image based multidimensional analysis
+        
+        
+    })
+    
+    obj <- glabel("   ", container = gg) 
+    gbutton(" Help ", container = gg, handler = function(h,...) { guiShowHelpFile("statistical_analysis.md") })
+    
+    obj <- glabel("   ", container = gg) 
+    gbutton(" Options ", container = gg, handler = guiHandler_AverageAndNormalise_Options)
+    
+    glabel("    ", container=gg)
+    obj <- gbutton(" Close ", container = gg, handler = function(h,...) {
+        dispose(w)
+    })
+    
+    visible(w) <- T
+    
+}
+
 
 # old
 guiHandler_AverageAndNormalise <- function(h,...){
