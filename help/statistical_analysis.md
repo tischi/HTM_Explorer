@@ -1,28 +1,18 @@
 # Statistical Analysis
 
-## Batch effects
+## Normalisation
 
-Biological data typically consist of measurement "batches".
+### Data features to be analyzed
 
-Typically, a batch is defined by data that are "comparable"; this could be due to
-- cells from same passage number are used
-- antibody stainings are from same "mix"
-- data was acquired in same microscopy session
+Select (add) all measurements that you want to analyze.
 
-In high-throughput screening such a measurement batch typically is considered to be one multi-well plate.
-
-As above conditions have a high probability to change between different batches one should (has to) normalize data to control measurements from the same batch.
-
-Statistically this is referred to as "handling of batch effects".
-
-The HTM Explorer gives you several outputs that handle batch effects in different ways (see below). 
-
-
-## Multiplicative or additive effect of treatments
+### Data transformation
 
 Before you start the actual analysis of your treatment effects you have to decide whether your treatment effects are multiplicative or additive to your readout.
 
-### Example:
+Basically, if you are interested in statements as "my treatment changed something two-fold" you should consider using the __log2__ transformation. On the other hand, if you are interested in statements as"my treatment add twenty units to my measurement" you should not transform your data and leave "None selected"
+
+#### Example:
 
 Let's neglect batch effects for now and assume you have only one batch of measurements. Let's also not think about statistical significance for now (otherwise we would need too many numbers). Say your readout is the number of a certain type of vesicles in the cells. 
 Your control measurement gave you: 
@@ -34,7 +24,7 @@ and you have two independent measurements for your treatment, namely
 	m1 = 10
 	m2 = 40
 
-#### Additive interpretation: 
+##### Additive interpretation: 
 If you adopt an "additive interpretation" of your data you would say: In measurement one the number of vesicles was decreased by 10 (10-20=-10) and in measurement two  the number of vesicles was increased by 20  (40-20=+20).
 
 Thus, on average the treatment led to an increase in the number of vesicles, because the mean difference of control samples and treated samples is: mean(-10, +20) = +5. In other words, the expected number of vesicles in treated samples is c + 5 = 25.
@@ -47,9 +37,7 @@ Mathematically this looks like this:
 	mean(d1,d2) = +5 
 	=> the treatment increases the readout
 
-
-
-#### Multiplicative interpretation:
+##### Multiplicative interpretation:
 If you adopt an "multiplicative interpretation" of your data you would say: 
 In measurement one the number of vesicles decreased by a factor of 2 (10/20=1/2) and in measurement two the number of vesicles increased by factor of 2 from (40/20=2). As you got the exact opposite effect in your two measurements you would say that on average there was no effect of the treatment.
 
@@ -70,7 +58,7 @@ One can also compute a "factor change" from the final result by taking it to the
 
 In words: on average the treatment changes the number of vesicles by a factor of 1, i.e. there is no change.
 
-##### Note:
+###### Note:
 
 Normalizing the data by dividing by the mean of the controls does __not__ give you this answer:
 
@@ -86,33 +74,89 @@ In fact if you compute the expected number of vesicles in treated sample you get
 
 This is the same answer as in the additive interpretation!
 
+## Negative control
+
+Select the negative control treatment. All your data will be normalised against it.
+You need to have (several) negative control data points in each experimental batch (see below).
+
+A special case is to select **"all treatments"**; in this case one assumes that only few treatments in each experiment
+cause an effect, so normalising against all treatments, e.g. using the median-based **robust_z_score**, is an option (add reference).
+
+## Batch-wise normalisation against negative control
+
+### Batch effects
+
+Biological data typically consist of measurement "batches".
+
+Typically, a batch is defined by data that are "comparable"; this could be due to
+- cells from same passage number are used
+- antibody stainings are from same "mix"
+- data was acquired in same microscopy session
+
+In high-throughput screening such a measurement batch typically is considered to be one multi-well plate.
+
+As above conditions often change between different batches one should (has to) normalize data to control measurements from the same batch.
+
+Statistically this is referred to as "handling of batch effects".
+
+The HTM Explorer gives you several outputs that handle batch effects in different ways (see below). 
+
+### subtract_mean_ctrl
+
+From all data points in each experimental batch (e.g., multi-well plate) you subtract the mean of all control data points in the respective batch.
+Combining this with a **log2** transformation gives you the log2-fold change of the treatments with respect to the controls;
+often this is a very useful readout as it has a nice biological interpretation (the statistical significance of this fold-change is computed in **[Analysis > Treatment summary]**)
+                      
+### z_score
+
+Each data point is replaced by z-score against the negative controls in the same batch: 
+z_score = (raw_value - mean(ctrls)) / sd(ctrls)
+
+Pro:
+- you take into account the variation (sd) of your controls; you are in some sense looking for treatments that are "significantly" different from the negative control. 
+Con:
+- the problem with this score is that the estimation of sd(ctrls) is very noisy if there are only a handful control measurements in each batch. A wrong estimation of sd(ctrls) can readily render all of your measurements in the same batch as "hits"" or "non-hits". 
+
+### robust_z_score
+
+Each data point is replaced by the robust z-score against the negative controls in the same batch: 
+z_score = (raw_value - median(ctrls)) / mad(ctrls)
+
+Pro:
+- useful if **all_treatments** are selected as negative controls and you have only few treatments (outliers) that cause an effcet; the median based values will efficiently ignore the outliers and use all the other treatment values a base line. 
+Con:
+- the problem with this score is that the estimation of mad(ctrls) is very noisy if there are only a handful control measurements in each batch. A wrong estimation of mad(ctrls) can readily render all of your measurements in the same batch as "hits"" or "non-hits".
+- if you have only a handful of negative controls, the median is not a very good representation of the true average of the negative control distribution (find reference).
+
+### divide_by_mean_ctrl
+
+You divide all data points in each batch by the mean of all control data points in the respective batch.
+If you think this is a good idea you should consider to rather perform a **log2** transform in combination with **subtract_mean_ctrl** (see dissucion in above section batch effects).
+
+### subtract_median_ctrl
+
+As **subtract_mean_ctrl**, but using the median of the control measurements. This is particularly useful if you use **all_treatments** as negative control (see **robust_z_score**).
+
+### divide_by_median_ctrl
+
+As **divide_by_mean_ctrl**, but using the median of the control measurements. This is particularly useful if you use **all_treatments** as negative control (see **robust_z_score**).
+
+## Options of Data Normalisation
+
+### Batch-wise spatial gradient correction
+
+Sometimes there are spatial gradients in your experiments; 
+for instance if you perform an antibody staining in a 96-well plate experiment chances are high that the antibody staining is uneven
+across the plate.
+
+Here are different methods to normalise each data point to the data points in its local neighborhood.
+
+
+
 
 ## Parameters
 
 ### Data transformation
-
-
-## `Median__z_score` (position based score)
-
-For each batch (plate), the data of all images within one position are averaged (see above) such that we have one number per position. 
-Then a z-score is computed for each position as Z = (value - mean(ctrls)) / sd(ctrls)
-Where the mean and sd are computed across all positions that contain the selected control measurements.
-
-To take into account the fact that you measured multiple batches the median z-score of all the batches is computed and given in the treatmentSummary table. The logic of taking the median is: "at least in half of the batches (replicates) there should have been a significant effect."; significant typically being Z>2 (increase) or Z<-2 (decrease).
-
-Issues:
-- the problem with this score is that the estimation of sd(ctrls) is very noisy if there are not enough control measurements. A wrong estimation of sd(ctrls) can readily render all of your measurements in the same batch as hits or non-hits. 
-- does not give you a statistical significance; for instance the value does not reflect how often you repeated your measurement
- 
-## `Median__robust_z_score` (position based score)
-
-Same as Median__z_score, but for each batch (plate) a z-score is computed as Z =  (treated - median(ctrls)) / mad(ctrls), where mad is the so called median average deviation (a median based analog to the standard deviation).
-
-This score can make sense if you want to remove outliers in your controls, e.g. you could take the whole plate (all treatments) as controls if you expect only a limited number of hits (reference: Butros and Huber).
-
-Issues:
-- same as `Median__z_score`
-
 
 ## `t_test__positions` (position based score)
 
