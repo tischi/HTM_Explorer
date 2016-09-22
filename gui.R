@@ -948,36 +948,9 @@ guiHandler_ScatterPlot_Options <- function(h,...) {
   visible(w) <- T
 }
 
-guiHandler_LoadImageTable <- function(h, ...) {
-  .path = gfile("Select image table (.csv)", type="open",filter = list("All files" = list(patterns = c("*.csv"))))
-  if(is.na(.path)) {
-   print("no file selected. loading aborted.")
-   return()
-  }
-  # todo: handle the cancel
-  print(paste("selected table file = ",.path))
-  
-  # todo: have some modal waiting box
-  w <- gwindow("Please wait", visible=F, expand=T)
-  gp <- ggroup(horizontal = FALSE, container=w, expand=T)
-  obj <- glabel("Loading. Please wait.", container=gp, expand=T)
-  visible(w) <- T
-  print("Please Wait. Loading Data.")
-  flush.console()
-  Sys.sleep(0.5)
-  
-  if(!exists("htm")) {
-    htm <<- htmLoadDataFromFile(htm=NULL, "data", path=.path)
-  } else {
-    print(paste("htm <<- htmLoadDataFromFile(htm=NULL, 'data', path =",.path ))
-    htm <<- htmLoadDataFromFile(htm=htm, "data", path=.path)
-  }
-  print("done.")
-  dispose(w)
-}
 
 guiHandler_LoadDataTable <- function(h, ...) {
-  .path = gfile("Select data table (.csv)", type="open",filter = list("All files" = list(patterns = c("*.csv"))))
+  .path = gfile("Select data table", type="open",filter = list("All files" = list(patterns = c("*.csv","*.txt"))))
   if(is.na(.path)) {
     print("no file selected. loading aborted.")
     return()
