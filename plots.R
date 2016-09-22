@@ -68,7 +68,7 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
   filenamePrefix = htm@settings@visualisation$image_filename_prefix
   foldernamePrefix = htm@settings@visualisation$image_foldername_prefix
   
-  # convert to forward slashes immideately, otherwise gsub has problems later
+  # convert to forward slashes immediately, otherwise gsub has problems later
   rootFolderTable = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_in_table"))
   rootFolderReal = gsub("\\\\" ,"/",htmGetListSetting(htm,"visualisation","image_root_foldername_on_this_computer"))  
   
@@ -109,8 +109,7 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
       if( foldernamePrefix != "" ) {  
         
         # construct pathname from file- and folder-name
-      
-        if( grepl(filenamePrefix,colname) ) {
+        if( grepl(filenamePrefix, colname) ) {
           
           imagename = strsplit(colname,filenamePrefix)[[1]][2]
           filename = data[[colname]][ir]
@@ -119,14 +118,10 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
           foldername = gsub("\\\\" ,"/",data[[cFolder]][ir])
           foldername = gsub(rootFolderTable, rootFolderReal, foldername)
           
-          if ( .Platform$OS.type == "unix" ) {
-            #foldername = gsub("\\\\" ,"/", foldername)
-            #pathname = paste('"',foldername,"/",filename,'"',sep="")
-            pathname = paste(foldername,"/",filename,sep="")
-          } else if ( .Platform$OS.type == "windows" ) {
-            #foldername = gsub("/", "\\\\", foldername)
-            #pathname = paste("\"",foldername,"\\",filename,"\"",sep="")
-            pathname = paste(foldername,"/",filename,sep="")
+          pathname = paste(foldername,"/",filename,sep="")
+          
+          if(!grepl("^/", pathname)) {
+            pathname = paste0("/",pathname)
           }
           
           if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
@@ -139,7 +134,7 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
       } else {
         
         # directly get the pathname=filename
-        if( grepl(filenamePrefix,colname) ) {
+        if( grepl(filenamePrefix, colname) ) {
           
           imagename = strsplit(colname,filenamePrefix)[[1]][2]
           if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
