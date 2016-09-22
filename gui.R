@@ -172,22 +172,134 @@ guiShowHelpFile <- function(help_file) {
 # GUI Handlers
 #
 
+#
+# Configuration
+#
 
+# Essential settings
+guiHandler_TreatmentAndBatchColumns <- function(h, ...) {
+  # todo: put into a for loop 
+  
+  w <- gwindow("Select column names containing ...", visible=F, expand=T)
+  gp <- ggroup(horizontal = FALSE, container=w, expand=T)
+  tbl <- glayout(container = gp, expand=T)
+  
+  columns = colnames(htm@data)
+  
+  i = 1
+  tbl[i,1] <- glabel("Treatment:", container=tbl, expand=T)
+  tbl[i,2] <- gcombobox(columns, 
+                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","treatment",gui=T)), 
+                        container=tbl,
+                        handler=function(h,...) {
+                          htmSetListSetting(htm,"columns","treatment",svalue(h$obj),gui=T)
+                        })
+  
+  i = i + 1
+  tbl[i,1] <- glabel("Batch (=Plate=Experiment=Replicate):", container=tbl)
+  tbl[i,2] <- gcombobox(columns, 
+                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","experiment",gui=T)), 
+                        container=tbl,
+                        handler=function(h,...) {
+                          htmSetListSetting(htm,"columns","experiment",svalue(h$obj),gui=T)
+                        })
+  
+  gg <- ggroup(horizontal = TRUE, container=w, expand=T)
+  
+  gbutton(" Apply ", container = gg, handler = function(h,...) {
+    htm <- get("htm", envir = globalenv()) 
+    cTreat = htmGetListSetting(htm,"columns","treatment",gui=T)
+    cBatch = htmGetListSetting(htm,"columns","experiment",gui=T)
+    htm@data$Metadata_batch_treatment = paste(htm@data[[cBatch]],htm@data[[cTreat]],sep="__")
+    print(paste("Generated new colum Metadata_batch_treatment, combining",cBatch,"and",cTreat))
+    assign("htm", htm, envir = globalenv())   
+    dispose(w)
+  })
+  
+  glabel("   ", container=gg)
+  
+  gbutton(" Help ", container = gg, handler = function(h,...) {
+    guiShowHelpFile("assay_column_configuration.md")
+  })
+  
+  
+  visible(w) <- TRUE
+  
+}
+
+# Spatial layout settings
+guiHandler_SpatialLayoutSettings <- function(h, ...) {
+  # todo: put into a for loop 
+  
+  w <- gwindow("Select column names containing ...", visible=F, expand=T)
+  gp <- ggroup(horizontal = FALSE, container=w, expand=T)
+  tbl <- glayout(container = gp, expand=T)
+  
+  columns = colnames(htm@data)
+  
+  i = 1
+  tbl[i,1] <- glabel("Position (=Well) coordinate:", container=tbl)
+  tbl[i,2] <- gcombobox(columns, 
+                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","wellnum",gui=T)), 
+                        container=tbl,
+                        handler=function(h,...) {
+                          htmSetListSetting(htm,"columns","wellnum",svalue(h$obj),gui=T)
+                        })
+  
+  i = i + 1
+  tbl[i,1] <- glabel("Sub-position (=Image) coordinate:", container=tbl)
+  tbl[i,2] <- gcombobox(columns, 
+                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","posnum",gui=T)), 
+                        container=tbl,
+                        handler=function(h,...) {
+                          htmSetListSetting(htm,"columns","posnum",svalue(h$obj),gui=T)
+                        })
+  
+  
+  
+  glabel("  ",cont=w)
+  
+  gf <- gframe(text=" Layout Settings ", horizontal = FALSE, container=w, expand=T)
+  tbl <- gui_makeListSettingGuiTable(setting="visualisation",
+                                     keys=c("number_positions_x","number_positions_y","number_subpositions_x","number_subpositions_y"),
+                                     container=gf)
+  glabel("  ",cont=w)
+  
+  gg <- ggroup(horizontal = TRUE, container=w, expand=T)
+  
+  
+  gbutton(" Apply ", container = gg, handler = function(h,...) {
+    dispose(w)
+  })
+  
+  glabel("   ", container=gg)
+  
+  gbutton(" Help ", container = gg, handler = function(h,...) {
+    guiShowHelpFile("assay_column_configuration.md")
+  })
+  
+  
+  visible(w) <- TRUE
+  
+}
+
+# Visualisation settings
 guiHandler_VisualisationSettings  <- function(h, ...) {
+  
   # todo: default initalisation somewhere else!
   
   w <- gwindow("Visualisation Settings", visible=F, use.scrollwindow =T, expand=T)
-   
+  
   # *******************
   glabel(" ", container = w)
   gf <- gframe(text=" Image Viewing Settings ", horizontal = FALSE, container=w, expand=T)
   gp <- ggroup(horizontal = FALSE, container=gf, expand=T)
   tbl <- gui_makeListSettingGuiTable(setting="visualisation",
-                                 keys=c("image_filename_prefix","image_foldername_prefix"),
-                                 container=gp,
-                                 type="string")
+                                     keys=c("image_filename_prefix","image_foldername_prefix"),
+                                     container=gp,
+                                     type="string")
   
-
+  
   getImageList <- function(){
     
     # convenience function
@@ -227,12 +339,12 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
   l <- getImageList()
   checkboxgroup_viewImages <- gcheckboxgroup(l$images,
                                              l$selected,
-                                              container = gf2, expand = T, handler = function(h,...){
-                                                print(svalue(h$obj))
-                                                htmSetListSetting(htm, "visualisation","viewImages",svalue(h$obj), gui=T)
-                                              })
+                                             container = gf2, expand = T, handler = function(h,...){
+                                               print(svalue(h$obj))
+                                               htmSetListSetting(htm, "visualisation","viewImages",svalue(h$obj), gui=T)
+                                             })
   
-
+  
   # refresh checkboxgroup_viewImages
   #refreshImageList()
   
@@ -242,14 +354,14 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
     print(l$images)
     checkboxgroup_viewImages[] <<- l$images
     svalue(checkboxgroup_viewImages) <<- l$selected 
-    })
+  })
   
   gp <- ggroup(horizontal = FALSE, container=gf, expand=T)
   glabel("Path mapping:", cont = gp)
   tbl <- gui_makeListSettingGuiTable(setting="visualisation",
-                                 keys=c("image_root_foldername_in_table","image_root_foldername_on_this_computer"),
-                                 container=gp,
-                                 type="string")
+                                     keys=c("image_root_foldername_in_table","image_root_foldername_on_this_computer"),
+                                     container=gp,
+                                     type="string")
   
   
   # *******************
@@ -257,8 +369,8 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
   glabel(" ", container = w)
   gf <- gframe(text=" Plotting Settings ", horizontal = FALSE, container=w, expand=T)
   tbl <- gui_makeListSettingGuiTable(setting="visualisation",
-                                    keys=c("heatmap_width","heatmap_image_size_cex","jitter"),    #,"heatmap_well_size_cex"
-                                    container=gf)
+                                     keys=c("heatmap_width","heatmap_image_size_cex","jitter"),    #,"heatmap_well_size_cex"
+                                     container=gf)
   
   
   
@@ -272,13 +384,14 @@ guiHandler_VisualisationSettings  <- function(h, ...) {
   
   
   gp <- ggroup(horizontal = T, container=w)
-
+  
   obj <- gbutton("Help", editable=FALSE, container = gp, handler = function(h,...) { guiShowHelpFile("visualisation_settings.md") } )
   
   
   visible(w) <- T
   
 }
+
 
 guiHandler_Heatmap_Data <- function(h, ...) {
   
@@ -289,9 +402,22 @@ guiHandler_Heatmap_Data <- function(h, ...) {
     
     
   if(is.null(htm@settings@columns$experiment)) {
-    gmessage("You need to specify the experiment and treatment columns [Main..Configure..Assay columns]")
+    gmessage("You need to specify the experiment and treatment columns [Main..Configuration..Assay columns]")
     return(NULL)
   }
+  
+  if(any(c(htmGetListSetting(htm,"columns","posnum"),
+           htmGetListSetting(htm,"columns","wellnum"),
+           htmGetListSetting(htm,"visualisation","number_positions_x"),
+           htmGetListSetting(htm,"visualisation","number_positions_y"),
+           htmGetListSetting(htm,"visualisation","number_subpositions_x")
+           ,htmGetListSetting(htm,"visualisation","number_subpositions_y"))
+         == "None selected")) {
+    gmessage("Spatial layout setting missing [Main..Configuration..Spatial layout]")
+    return(NULL)
+  }
+     
+  
   
   
   #htm <- htmMakeLayoutReplicateColumn(htm); 
@@ -299,17 +425,9 @@ guiHandler_Heatmap_Data <- function(h, ...) {
   
   w <- gwindow("Heatmap", visible=F)
   
-  gf <- gframe(text=" Layout Settings ", horizontal = FALSE, container=w, expand=T)
-  tbl <- gui_makeListSettingGuiTable(setting="visualisation",
-                                     keys=c("number_positions_x","number_positions_y","number_subpositions_x","number_subpositions_y"),
-                                     container=gf)
-  glabel("  ",cont=w)
-  
   gp <- ggroup(horizontal = FALSE, container=w)
   
   tmp <- ggroup(horizontal = TRUE, container=gp)
-  
-  columns <- sort(c("None selected",colnames(htm@data)))      
   
   tmp <- ggroup(horizontal = TRUE, container=gp)
   glabel("Batch:  ", container = tmp)
@@ -1078,73 +1196,7 @@ guiHandler_NewHTM <- function(h,...) {
   }
 }
 
-guiHandler_SetColumns <- function(h, ...) {
-  # todo: put into a for loop 
-  
-  w <- gwindow("Select column names containing ...", visible=F, expand=T)
-  gp <- ggroup(horizontal = FALSE, container=w, expand=T)
-  tbl <- glayout(container = gp, expand=T)
-  
-  columns = colnames(htm@data)
-  
-  i = 1
-  tbl[i,1] <- glabel("Treatment:", container=tbl, expand=T)
-  tbl[i,2] <- gcombobox(columns, 
-                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","treatment",gui=T)), 
-                        container=tbl,
-                        handler=function(h,...) {
-                          htmSetListSetting(htm,"columns","treatment",svalue(h$obj),gui=T)
-                        })
-  
-  i = i + 1
-  tbl[i,1] <- glabel("Batch (=Plate=Experiment=Replicate):", container=tbl)
-  tbl[i,2] <- gcombobox(columns, 
-                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","experiment",gui=T)), 
-                        container=tbl,
-                        handler=function(h,...) {
-                          htmSetListSetting(htm,"columns","experiment",svalue(h$obj),gui=T)
-                        })
 
-  i = i + 1
-  tbl[i,1] <- glabel("Position (=Well) coordinate:", container=tbl)
-  tbl[i,2] <- gcombobox(columns, 
-                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","wellnum",gui=T)), 
-                        container=tbl,
-                        handler=function(h,...) {
-                          htmSetListSetting(htm,"columns","wellnum",svalue(h$obj),gui=T)
-                        })
-  
-  i = i + 1
-  tbl[i,1] <- glabel("Sub-position (=Image) coordinate:", container=tbl)
-  tbl[i,2] <- gcombobox(columns, 
-                        selected=htmGetColumnNumber(htm, htmGetListSetting(htm,"columns","posnum",gui=T)), 
-                        container=tbl,
-                        handler=function(h,...) {
-                          htmSetListSetting(htm,"columns","posnum",svalue(h$obj),gui=T)
-                        })
-  
-  gg <- ggroup(horizontal = TRUE, container=w, expand=T)
-  
-  gbutton(" Apply ", container = gg, handler = function(h,...) {
-    htm <- get("htm", envir = globalenv()) 
-    cTreat = htmGetListSetting(htm,"columns","treatment",gui=T)
-    cBatch = htmGetListSetting(htm,"columns","experiment",gui=T)
-    htm@data$Metadata_batch_treatment = paste(htm@data[[cBatch]],htm@data[[cTreat]],sep="__")
-    print(paste("Generated new colum Metadata_batch_treatment, combining",cBatch,"and",cTreat))
-    assign("htm", htm, envir = globalenv())   
-    dispose(w)
-  })
-  
-  glabel("   ", container=gg)
-  
-  gbutton(" Help ", container = gg, handler = function(h,...) {
-    guiShowHelpFile("assay_column_configuration.md")
-    })
-          
-  
-  visible(w) <- TRUE
-  
-  }
 
 guiHandler_ImageQCs <- function(h, ...) {
   w <- gwindow("Image QC Add/Remove", visible=F)
@@ -1487,10 +1539,11 @@ mbl$Tables$"View as spreadsheet"$handler = function(h,...) { edit(htm@data) }
 mbl$Tables$"Print column names"$handler = function(h,...) { print(names(htm@data)) }
 mbl$Tables$"Save as"$handler = function(h,...) { path = gfile("Save as...", type="save"); htmSaveDataTable(htm, "data", path)}
 
-mbl$Configure$"Load configuration"$handler = guiHandler_htmLoadSetttings
-mbl$Configure$"Save configuration"$handler = guiHandler_htmSaveSetttings
-mbl$Configure$"Configure assay columns"$handler = guiHandler_SetColumns
-mbl$Configure$"Configure visualisation settings"$handler = guiHandler_VisualisationSettings
+mbl$Configuration$"Load configuration"$handler = guiHandler_htmLoadSetttings
+mbl$Configuration$"Save configuration"$handler = guiHandler_htmSaveSetttings
+mbl$Configuration$"Configure assay columns"$handler = guiHandler_TreatmentAndBatchColumns
+mbl$Configuration$"Configure spatial layout"$handler = guiHandler_SpatialLayoutSettings
+mbl$Configuration$"Configure visualisation settings"$handler = guiHandler_VisualisationSettings
 
 mbl$Plotting$"Scatter plot"$handler = guiHandler_ScatterPlot_Data
 mbl$Plotting$"Jitter plot"$handler = guiHandler_JitterPlot_Data
