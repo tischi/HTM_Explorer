@@ -1,0 +1,1 @@
+treatment	batch 	well 	wellnum	measurement	positionneg	today	A01	1	2	1neg	today	A01	1	3	2neg	today	A01	1	4	3neg	today	A01	1	2	4pos	today	A02	2	6	1pos	today	A02	2	7	2pos	today	A02	2	8	3pos	today	A02	2	7	4
