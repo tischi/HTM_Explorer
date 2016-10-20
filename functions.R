@@ -459,6 +459,12 @@ htmNormalization <- function(htm) {
   print("*" )
   print("")
   
+  # add qc column if missing
+  if(is.null(htm@data$HTM_qc)){
+    print("No QC column found; setting all measurements to valid.")
+    htm@data$HTM_qc <- TRUE
+  }
+  
   # get data
   data <- htm@data
   
