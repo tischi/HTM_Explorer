@@ -16,11 +16,11 @@
 
 ## Load data table
 
-- [Tables > Load single table] "\\embo2016\\embo2016\htm2016\HTM-Explorer\Data\images--EMBO_HTM_2012.csv"
-- [Tables > Print column names]
-  - The names of all columns in your data table are printed in the R console window
+- [Tables > Load single table]
+  - \\embo2016\\embo2016\htm2016\HTM-Explorer\Data\images--EMBO_HTM_2012.csv
+
 - [Tables > View as spreadsheet]
-  - Examine the table to see what information you have
+
 
 ## Configuration 
 
@@ -28,7 +28,8 @@ Here you tell the software which information is stored in which column of your d
 
 ### Load pre-configured configuration file
 
-- [Configuration > Load configuration] "\\\\embo2016\\embo2016\\htm2016\\HTM-Explorer\\Data\\images--EMBO_HTM_2012--Config.R"
+- [Configuration > Load configuration]
+  - \\embo2016\\embo2016\\htm2016\\HTM-Explorer\\Data\\images--EMBO_HTM_2012--Config.R
 
 ### Configure assay columns
 
@@ -85,20 +86,24 @@ Here you tell the software which information is stored in which column of your d
 
 - [Plotting > Jitter plot]
 - Label axis: Metadata_batch_treatment
-- Value axis: **Count_Nuclei**, **MaxIntensity_Dna**
-  - later also check: IntegratedIntensity_Dna, MeanIntensity_Dna
-  - what do the different intensity readouts mean?
+- Value axis: **Count_Nuclei**
 - Experiment selection: None selected
 - Treatment selection: Scramble, Plk1, KIF11
 - Sorting: alphabetic
 - [Options] Check: Color by treatment
 - [Plot]
 
+Repeat above with different measurements such as **MaxIntensity_Dna**, **IntegratedIntensity_Dna**, **MeanIntensity_Dna**.
+Think about the biological meaning about the different intensity measurements.
+
 ## Check for cell density dependence of your measurement
 
-Does not really apply in this assay...
+This does not really apply in this assay...but it usually is an issue.
+See for instance these publications:
 
+- [Population context determines cell-to-cell variability in endocytosis and virus infection. Nature 2009](http://www.nature.com/nature/journal/v461/n7263/full/nature08282.html)
 
+Or check the example shown in [this presentation](https://github.com/tischi/presentation-biostatistics).
 
 ## Identify out-of-focus images
 
@@ -106,12 +111,10 @@ Does not really apply in this assay...
   - X axis: Count_Nuclei
   - Y axis: Image_Quality_PowerLogLogSlope_Dna
   - Experiment selection: None selected
-  - Treatment selection: None selected (remove all selected)
+  - Treatment selection: None selected
   - [Show plot]
 
-  - Using [Click & View] find a threshold for “Image_Quality_PowerLogLogSlope_Dna” above which the images are OK; note this number, as you will need it later for the automated quality control!
-
-
+Using [Click & View] find a threshold for "Image_Quality_PowerLogLogSlope_Dna” above which the images are OK; note this number, as you will need it below for the automated quality control.
 
 ## Quality control
 
@@ -120,12 +123,14 @@ Does not really apply in this assay...
   - Minimum: -2
   - Maximum: 100000
   - [Add QC]
-  - [Apply Image QCs Now] 
-  - Check the output in the R console window!
+  - [Apply QCs Now] 
+ 
+Check the output in the R console window!
   
-After applying the QC data that did not pass QC will be marked with a cross in all other plots. You can check this for instance like this:
+After applying the QC, data that did not pass QC will be marked with a cross in all other plots.
+You can check this for instance like this:
 
-- [Plot..Heatmap]
+- [Plotting > Heatmap]
   - Batch: EMBO_2012_Group2
   - Measurement: Count_Nuclei
   - [Show Heatmap]
