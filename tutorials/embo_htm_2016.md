@@ -138,7 +138,6 @@ You can check this for instance like this:
 
 ## Data transformation and normalisation 
 
-
 Before you go on have a look at [this presentation](https://github.com/tischi/presentation-biostatistics).
 
 - [Analysis > Normalisation]
@@ -152,7 +151,7 @@ Before you go on have a look at [this presentation](https://github.com/tischi/pr
 
 ## Visual inspection of normalised data
 
-...
+Use any of the plotting tools to check how the derived readout **HTM_norm__log2__subtract_mean_ctrl__Count_Nuclei** behaves.
 
 ## Statistical analysis
 
@@ -162,8 +161,6 @@ Before you go on have a look at [this presentation](https://github.com/tischi/pr
   - Positive Control (optional): KIF11
   - Number of objects: Count_Nuclei
   - [Analyze]
-  - Check the output in the R console window!
-  - Examine the saved table in Excel!
 
-
-
+Check the output in the R console window.
+Examine saved table in Excel.
