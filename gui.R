@@ -1343,18 +1343,11 @@ guiHandler_Normalisation <- function(h,...){
                           default = "log2",
                           container = w)
   
-  gui_ListSettingDropdown(text = "  Batch-wise spatial gradient correction  ",
-                          setting = "statistics",
-                          key = "gradient_correction",
-                          choices = c("None selected", "median_polish", "median_7x7", "median_5x5", "median_3x3", "z_score_5x5"),
-                          default = "None selected",
-                          container = w)
-  
   gui_ListSettingDropdown(text = "  Batch-wise normalisation against negative control  ",
                           setting = "statistics",
                           key = "normalisation",
                           choices = c("None selected","z_score","robust_z_score","subtract_mean_ctrl","divide_by_mean_ctrl","subtract_median_ctrl","divide_by_median_ctrl"),
-                          default = "None selected",
+                          default = "subtract_mean_ctrl",
                           container = w)
   
   gui_ListSettingDropdown(text = "  Negative control  ",
@@ -1401,6 +1394,14 @@ guiHandler_Normalisation <- function(h,...){
 guiHandler_Normalisation_Options <- function(h,...){
   
   w <- gwindow("Data Normalisation Options", visible=F)
+  
+  
+  gui_ListSettingDropdown(text = "  Batch-wise spatial gradient correction  ",
+                          setting = "statistics",
+                          key = "gradient_correction",
+                          choices = c("None selected", "median_polish", "median_7x7", "median_5x5", "median_3x3", "z_score_5x5"),
+                          default = "None selected",
+                          container = w)
   
   gcheckbox("Compute combined vector for all selected measurements?", 
             checked = (htmGetListSetting(htm,"statistics","compute_combined_vector_TF",gui=T) == T), 
@@ -1454,7 +1455,7 @@ guiHandler_TreatmentSummary <- function(h,...){
                           default = colnames(htm@data)[1],
                           container = w)
   
-  gui_ListSettingDropdown(text = "  Positive control  ",
+  gui_ListSettingDropdown(text = "  Positive control (optional) ",
                           setting = "statistics",
                           key = "positiveControl",
                           choices = c("None selected", sort(unique(htm@data[[htm@settings@columns$treatment]]))),
