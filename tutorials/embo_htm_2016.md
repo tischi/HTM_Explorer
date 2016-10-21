@@ -1,6 +1,6 @@
-# EMBO HTM 2016
+# EMBO course on High-throughput microscopy 2016
 
-## Analysis of HTM data literature
+## HTM data analysis literature
 
 - Bray and Carpenter. Advanced Assay Development Guidelines for Image-Based High Content Screening and Analysis. 2012. 
 - Birmingham A, Selfors LM, Forster T, Wrobel D, Kennedy CJ, Shanks E, Santoyo-Lopez J, Dunican DJ, Long A, Kelleher D, Smith Q, Beijersbergen RL, Ghazal P, Shamu CE. Statistical methods for analysis of high-throughput RNA interference screens. Nat Methods. 2009
@@ -9,36 +9,51 @@
 
 ## Starting HTM Explorer
 
+- Follow instructions [here](https://github.com/tischi/HTM_Explorer/blob/master/README.md#help-installation-and-getting-started) to install R and to download the HTM Explorer software
 - Start R or RStudio
-- In the console window execute below commands:
+- In the R console window execute below line of commands:
 - `path = "\\\\embo2016\\embo2016\\htm2016\\HTM-Explorer\\R-code"; setwd(path); source("run.R");`
 
 ## Load data table
 
-- [Tables > Load single table] "…/Data/images--EMBO_HTM_2012.csv"
+- [Tables > Load single table] "\\embo2016\\embo2016\htm2016\HTM-Explorer\Data\images--EMBO_HTM_2012.csv"
+- [Tables > Print column names]
+  - The names of all columns in your data table are printed in the R console window
 - [Tables > View as spreadsheet]
+  - Examine the table to see what information you have
 
-## Configure assay columns
+## Configuration 
+
+Here you tell the software which information is stored in which column of your data table.
+
+### Load pre-configured configuration file
+
+- [Configuration > Load configuration] "\\\\embo2016\\embo2016\\htm2016\\HTM-Explorer\\Data\\images--EMBO_HTM_2012--Config.R"
+
+### Configure assay columns
 
 - [Configuration > Configure assay columns]
+  - [Help] 
   - Treatment: Metadata_gene_siRNA
   - Batch: Metadata_plate
-- [Configuration..Configure spatial layout]
+
+### Configure spatial layout
+
+- [Configuration > Configure spatial layout]
   - Position: Metadata_wellNum
   - Sub-position: Metadata_posNum
   - positions x: 12
   - positions y: 8
   - sub-positions x: 1
   - sub-positions y: 1
-  
-## Configure visualization settings
 
-- [Main > Configure > Plotting]
+### Configure visualisation settings
+
+- [Configuration > Configure visualisation settings]
   - Check “Overlay” to be viewed
   - image_root_foldername_in_table: /g/
   - image_root_foldername_on_this_computer: //embo2016/embo2016/htm2016/HTM-Explorer/Data
   - Path to FIJI: C:\Users\teach\Desktop\Fiji.app\ImageJ-win64.exe
-
 
 ## Check for cell density gradients
 
