@@ -147,7 +147,9 @@ Before you go on have a look at [this presentation](https://github.com/tischi/pr
   - Batch-wise normalisation: subtract_mean_control
   - Negative Control: Scramble
   - [Normalise]
-  - Check the output in the R console window! Basically you have now new columns in your table.
+
+Check the output in the R console window! 
+Basically you now have new columns in your table.
 
 ## Visual inspection of normalised data
 
