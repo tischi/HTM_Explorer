@@ -964,3 +964,170 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
 
 
 
+#
+# Correlation-plot
+#
+
+htmCorrelationPlot <- function(htm, cm, corder, batchX, batchY, .xlim=NA, .ylim=NA, colorize="None selected", aggregate = "None selected", treatmentSubset="None selected", newdev=T, action="plot") {
+  
+  
+  print("")
+  print("")
+  print("Correlation Plot")
+  
+  # get the data
+  data <- htm@data
+  if(treatmentSubset[1] != "None selected") data <- subset(data, data[[htm@settings@columns$treatment]] %in% treatmentSubset)
+  
+  qc <- data$HTM_qc
+  treatments <- data[[htm@settings@columns$treatment]]
+  experiments <- data[[htm@settings@columns$experiment]]
+  
+  if(aggregate != "None selected") {
+    vx <- tapply(htm@data[[cx]], htm@data[[aggregate]], mean, na.rm=TRUE)
+    vy <- tapply(htm@data[[cy]], htm@data[[aggregate]], mean, na.rm=TRUE)
+  } else {
+    vx_tmp <- data[[cm]][which(data[[htm@settings@columns$experiment]]==batchX)]
+    vx_order <- data[[corder]][which(data[[htm@settings@columns$experiment]]==batchX)]
+    vx <- vx_tmp[order(vx_order)]
+  
+    vy_tmp <- data[[cm]][which(data[[htm@settings@columns$experiment]]==batchY)]
+    vy_order <- data[[corder]][which(data[[htm@settings@columns$experiment]]==batchY)]
+    vy <- vy_tmp[order(vy_order)]
+  }
+  
+  cx = paste(cm,batchX,sep="__")
+  cy = paste(cm,batchY,sep="__")
+    
+  if( colorize != "None selected") {
+    if(aggregate != "None selected") {
+      .colors <- tapply(htm@data[[colorize]], htm@data[[aggregate]], function(z) {z[1]})
+    } else {
+      .colors = data[[colorize]]
+    }
+    n = length(unique(data[[colorize]]))
+    if(n<=8) {
+      col_pal <- brewer.pal(8,"Set2")
+    } else {
+      col_pal <- rainbow(n)
+    }
+    .colors = col_pal[factor(.colors)]
+  } else {
+    .colors = rep(1, length(vx))
+  }  
+  
+  
+  if(!is.null(qc)) {
+    print("  ..qc column exists!")
+    if(htmGetListSetting(htm,"visualisation","plotting_showQCfailData_TF")==T) {  # label data points that did not pass QC
+      pchQC = ifelse(qc==1, 16, 4)
+    } else {  # remove data points that did not pass QC
+      print("  not showing data points that failed QC")
+      vx = vx[which(qc==1)]
+      vy = vy[which(qc==1)]
+      data = data[which(qc==1),]
+      .colors = .colors[which(qc==1)]
+      treatments = treatments[which(qc==1)]
+      qc <- rep(1,length(vx))
+      pchQC = rep(16, length(vx))
+    }
+  } else {
+    print("  ..no qc column => show all data")
+    pchQC = rep(16,length(vx))
+  }
+  
+  
+  if(action=="plot") {
+    
+    #factors <- factor(treatments, levels=unique(treatments)) 
+    #palette(rainbow(length(unique(treatments)))) 
+    
+    if(newdev){
+      dev.new()
+    }
+    
+    dotsize = 0.75
+    op <- par(mar = c(10,10,4,2) + 0.1) 
+    
+    if(htmGetListSetting(htm,"visualisation","scatterPlot_scaleFromZero_TF")==T) {
+      .ylim = c(0, max(vy))
+      .xlim = c(0, max(vx))
+    }
+    
+    type = "p"
+    
+    # actual plotting
+    if( is.na(.xlim) || is.na(.ylim) ) {
+      plot(vx, vy, xlab=cx, ylab=cy, type = type, pch=pchQC, cex=dotsize, main="", col=.colors, cex.lab=1.2)
+    } else {    
+      plot(vx, vy, xlab=cx, ylab=cy, xlim=.xlim, ylim=.ylim, type = type, pch=pchQC, cex=dotsize, main="", col=.colors, cex.lab=1.2)
+    }
+    
+    if( htmGetListSetting(htm,"visualisation","scatterPlot_showTreatmentMean_TF")==T) {
+      factors <- factor(treatments, levels=unique(treatments)) 
+      
+      # compute stats for plotting
+      vxMean = tapply(vx[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
+      vyMean = tapply(vy[which(qc==1)], factors[which(qc==1)], function(z) {mean(z,na.rm=T)})
+      colorsMean = tapply(.colors[which(qc==1)], factors[which(qc==1)], function(z) {z[1]})
+      
+      points(vxMean, vyMean, pch = 16, type = type, cex = 5*dotsize, main="", col=colorsMean)
+      cat("\nMean values:\n")
+      print(vxMean)
+      print(vyMean)
+      
+    } 
+    
+    plotTitle = ""
+    if(experimentSubset[1] != "None selected") {
+      plotTitle = experimentSubset[1]
+    } else {
+      plotTitle = "All experiments"
+    }
+    
+    if(treatmentSubset[1] != "None selected") {
+      plotTitle = paste(plotTitle,paste(treatmentSubset,collapse=" "),sep="\n")
+    } else {
+      plotTitle = paste(plotTitle,"All treatments",sep="\n")
+    }
+    title(plotTitle, cex.main = 1.2)
+    
+    
+    linefit = FALSE
+    if(linefit) {
+      fit <- lm(vy~vx)
+      print(fit)
+      yfit = predict(fit, list(vx=vx))
+      lines(vx,yfit,col="red",lwd=2)
+      #fit <- lm(vx~vy)
+      #print(fit)
+      #xfit = predict(fit, list(vy=vy))
+      #lines(xfit,vy,col="blue",lwd=2)
+      #pcaFit(vx,vy)
+    }
+    
+    
+    if( colorize != "None selected") {
+      print("  putting legend")
+      legend("topleft",legend = levels(factor(data[[colorize]])), bg="white", col=col_pal, pch=16)
+      # x=max(vx,na.rm=T),y=max(vy,na.rm=T),
+    }
+    
+    
+    par(op)
+  }
+  
+  
+  if(action=="click") {
+    print("")
+    i <- identify(vx, vy, n = 1, plot = FALSE)
+    print(paste(cx,"=",data[i,cx]))
+    print(paste(cy,"=",data[i,cy]))
+    print(paste("treatment =",treatments[i]))
+    htmShowDataFromRow(htm, data, i)
+  } 
+  
+}
+
+
+
