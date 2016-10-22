@@ -4,6 +4,8 @@
 
 - Bray and Carpenter. Advanced Assay Development Guidelines for Image-Based High Content Screening and Analysis. 2012. 
 - Birmingham A, Selfors LM, Forster T, Wrobel D, Kennedy CJ, Shanks E, Santoyo-Lopez J, Dunican DJ, Long A, Kelleher D, Smith Q, Beijersbergen RL, Ghazal P, Shamu CE. Statistical methods for analysis of high-throughput RNA interference screens. Nat Methods. 2009
+- Malo et al., statistical practica in high-throughput screening data analysis Nature Biotech 2006
+- Boutros, Bras, Huber, Genome Biology 2006
 
 **Many methods, no standards => you have to think yourself and be prepared to defend your choices!**
 
