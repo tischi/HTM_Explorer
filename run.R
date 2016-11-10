@@ -25,14 +25,14 @@ if (!require("raster")) {
   install.packages("raster")
   library(raster)
 }
-if (!require("plotly")) {
-  install.packages("plotly")
-  library(plotly)
-}
-if (!require("shiny")) {
-  install.packages("shiny")
-  library(plotly)
-}
+#if (!require("plotly")) {
+#  install.packages("plotly")
+#  library(plotly)
+#}
+#if (!require("shiny")) {
+#  install.packages("shiny")
+#  library(plotly)
+#}
 
 
 #options(warn = 2)

@@ -82,7 +82,7 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
     imageViewerCMD = "unkown"
   }
   
-  cmd = imageViewerCMD
+  cmd = ""
   
   # check that the columns exist in general
   filename_found = F
@@ -125,7 +125,9 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
           }
           
           if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
-            cmd = paste(cmd, paste0(' -eval \"open(\'',pathname,'\')\"') )
+            #cmd = paste(cmd, paste0(' -eval \"open(\'',pathname,'\')\"') )
+            cmd = paste(cmd, paste0('open(\'',pathname,'\');\n') )
+            
           }
           
           
@@ -184,8 +186,11 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
       #cmd = paste(cmd,' -eval \"makePoint(',round(data$Location_Center_X[ir]),',',round(data$Location_Center_Y[ir]),');\"')
       x <- round(data$Location_Center_X[ir])
       y <- round(data$Location_Center_Y[ir])
-      cmd = paste(cmd, paste0(' -eval \"makeRectangle(',x-50,',',y-50,',',100,',',100,');\"'))
-      cmd = paste(cmd, paste0(' -eval \"run(\'Draw\', \'slice\');\"'))
+      #cmd = paste(cmd, paste0(' -eval \"makeRectangle(',x-50,',',y-50,',',100,',',100,');\"'))
+      #cmd = paste(cmd, paste0(' -eval \"run(\'Draw\', \'slice\');\"'))
+      cmd = paste(cmd, paste0('makeRectangle(',x-50,',',y-50,',',100,',',100,');\n'))
+      cmd = paste(cmd, paste0('run(\'Draw\', \'slice\');\n'))
+      
       }
     
     
@@ -193,12 +198,25 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
   
   if(length(irs)>1) {
     # make stack
-    cmd = paste(cmd, paste0(' -eval \"run(\'Images to Stack\');\"'))
+    #cmd = paste(cmd, paste0(' -eval \"run(\'Images to Stack\');\"'))
+    cmd = paste(cmd, paste0('run(\'Images to Stack\');\n'))
+    
   }
   
+  tmp_path = paste0(htmPath,"/tmp") 
+  dir.create(tmp_path, showWarnings = FALSE)
+  tmp_file = paste0(tmp_path,"/open.ijm");
+  write(cmd, file = tmp_file);
   
-  print(cmd)
-  system(cmd,wait=F)
+  if ( .Platform$OS.type == "unix" ) {
+    tmp_file = gsub("\\\\" ,"/", tmp_file)
+  } else if ( .Platform$OS.type == "windows" ) {
+    tmp_file = gsub("/", "\\\\", tmp_file)
+  }
+  
+  full_cmd = paste(imageViewerCMD,'-macro',paste0('\"',tmp_file,'\"'));
+  print(full_cmd)
+  system(full_cmd,wait=F)
   
   
 }
