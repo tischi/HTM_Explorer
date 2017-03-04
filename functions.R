@@ -906,8 +906,8 @@ htmTreatmentSummary_Data <- function(htm) {
                         
                         t_test__estimate=rep(NA,numEntries),
                         t_test__p_value=rep(NA,numEntries),
+                        t_test__p_value_adjusted=rep(NA,numEntries),
                         t_test__signCode=rep(NA,numEntries),
-                        
                         
                         #z_score__allBatches=rep(NA,numEntries),
                         #robust_z_score__allBatches=rep(NA,numEntries),
@@ -930,7 +930,6 @@ htmTreatmentSummary_Data <- function(htm) {
   
   print("Computing statistics...")
   ids_treatments = split(1:nrow(data), data[[htm@settings@columns$treatment]])
-  
   i=0
   
   for(ids in ids_treatments) {
@@ -944,6 +943,7 @@ htmTreatmentSummary_Data <- function(htm) {
     
     # init
     t_test__p_value = NA
+    t_test__p_value_adjusted = NA
     t_test__signCode = NA
     t_test__estimate = NA
     z_scores = NA
@@ -990,11 +990,13 @@ htmTreatmentSummary_Data <- function(htm) {
         #print(2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 ))
         
         t_test__p_value <- 2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 )
+        # correct for multiple testing
+        t_test__p_value_adjusted <- p.adjust(t_test__p_value, "bonferroni", length(ids_treatments))
         t_test__estimate <- t$estimate[2]
-        t_test__signCode <- ifelse(t_test__p_value<0.001,"***",
-                                   ifelse(t_test__p_value<0.01,"**",
-                                          ifelse(t_test__p_value<0.05,"*",
-                                                 ifelse(t_test__p_value<0.1,"."," "
+        t_test__signCode <- ifelse(t_test__p_value_adjusted<0.001,"***",
+                                   ifelse(t_test__p_value_adjusted<0.01,"**",
+                                          ifelse(t_test__p_value_adjusted<0.05,"*",
+                                                 ifelse(t_test__p_value_adjusted<0.1,"."," "
                                                  ))))
       }
       
@@ -1058,13 +1060,13 @@ htmTreatmentSummary_Data <- function(htm) {
     means = paste(round(means_treated,3),collapse=";")
     median__means = median(means_treated)
       
-  
     i = i + 1
     results$treatment[i] <- treat
     results$batches[i] = batches
     results$means[i] = means
     results$median__means[i] = median__means
     results$t_test__p_value[i] = t_test__p_value
+    results$t_test__p_value_adjusted[i] = t_test__p_value_adjusted
     results$t_test__signCode[i] = t_test__signCode
     results$t_test__estimate[i] = t_test__estimate
     #results$z_scores[i] = z_scores
