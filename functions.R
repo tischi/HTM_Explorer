@@ -333,7 +333,7 @@ htmApplyQCs <- function(htm) {
 
 dataframeQC <- function(data=data.frame(),qc=data.frame()) {
     
-    passedallqc = rep(TRUE, nrow(data) )
+    passedallqc = rep(1, nrow(data) )
     
     print(paste("QC:"))
     
@@ -343,7 +343,7 @@ dataframeQC <- function(data=data.frame(),qc=data.frame()) {
         
         #passedthisqc = rep(NA, nrow(htm@data) )
         passedthisqc <- ( (values >= qc$min[i]) & (values <= qc$max[i]) & !(is.na(values)))
-        passedallqc[ !passedthisqc ] <- FALSE
+        passedallqc[ !passedthisqc ] <- 0
         
         print(paste("Measurement:", qc$colname[i]))
         print(paste("  Allowed range:", qc$min[i], "..",qc$max[i], "and not NA."))
@@ -462,7 +462,7 @@ htmNormalization <- function(htm) {
   # add qc column if missing
   if(is.null(htm@data$HTM_qc)){
     print("No QC column found; setting all measurements to valid.")
-    htm@data$HTM_qc <- TRUE
+    htm@data$HTM_qc <- 1
   }
   
   # get data
@@ -600,8 +600,8 @@ htmNormalization <- function(htm) {
           
           print(paste("  Experiment:",experiment))
           
-          indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-          indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+          indices_all <- which( (data[[htm@settings@columns$experiment]] == experiment))
+          indices_ok <- which( (data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc == 1) & !is.na(data[[input]]))
           
           xy = htm_convert_wellNum_to_xy(data[indices_ok, htm@settings@columns$wellnum]) 
         
@@ -686,14 +686,14 @@ htmNormalization <- function(htm) {
           #print(paste("  Experiment:",experiment))
           
           indices_all <- which((data[[htm@settings@columns$experiment]] == experiment))
-          indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & !is.na(data[[input]]))
+          indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc == 1) & !is.na(data[[input]]))
           
           if("all treatments" %in% negcontrols) {
             indices_controls_ok <- indices_ok
           } else {
             indices_controls_ok <- which((data[[htm@settings@columns$experiment]] == experiment) 
                                          & !is.na(data[[input]]) 
-                                         & (data$HTM_qc) 
+                                         & (data$HTM_qc == 1) 
                                          & (data[[htm@settings@columns$treatment]] %in% negcontrols))
           }
           
@@ -808,7 +808,7 @@ htmComputeCombinedVector <- function(htm) {
         
         for (treatment in unique(treatments)) {
             
-            indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc) & (data[[htm@settings@columns$treatment]] == treatment) )
+            indices_ok <- which((data[[htm@settings@columns$experiment]] == experiment) & (data$HTM_qc == 1) & (data[[htm@settings@columns$treatment]] == treatment) )
             indices_all <- which((data[[htm@settings@columns$experiment]] == experiment) & (data[[htm@settings@columns$treatment]] == treatment) )
             
             # compute normalised direction
@@ -983,9 +983,9 @@ htmTreatmentSummary_Data <- function(htm) {
         #d$experiment <- as.factor(substr(d$experiment, nchar(d$experiment)-7+1, nchar(d$experiment)))
         d$treatment <- as.factor(d$treatment)
         d$treatment <- relevel( d$treatment, "control" ) # control must be the 1st level for the linear model
-        t <- t.test(d$value ~ d$treatment)  # as there typically is enough data no equal variance is assumed
+        t <- t.test(d$value ~ d$treatment)  # as typically there is enough data no equal variance is assumed
         
-        nBlocks = length(unique(d$experiment)) 
+        nBlocks = length(unique(d$experiment)) # corrects for the degress of freedom
         n = nrow(d)
         #print(2-2*pt(abs(t$statistic), df = n - (nBlocks-1) - 2 ))
         
