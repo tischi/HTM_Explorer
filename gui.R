@@ -1479,6 +1479,14 @@ guiHandler_TreatmentSummary <- function(h,...){
     
     measurements = htmGetVectorSettings("statistics$featureSelection") 
     
+    colObjectCount <- htmGetListSetting(htm,"statistics","objectCount")
+    if ( colObjectCount == "None selected" )
+    {
+        gmessage("Please specify a column with the number of objects per image. If you don't have this information you could just add a column manually")
+        return(NULL)
+    }
+        
+    
     for (measurement in measurements) {
       
       # QC

@@ -870,6 +870,7 @@ htmTreatmentSummary_Data <- function(htm) {
   treatments <- sort(unique(data[[htm@settings@columns$treatment]]))
   colObjectCount <- htmGetListSetting(htm,"statistics","objectCount")
   
+  
   #ctrls <- htm@settings@ctrlsNeg
   negative_ctrl <- c(htmGetListSetting(htm,"statistics","negativeControl"))
   positive_ctrl <- c(htmGetListSetting(htm,"statistics","positiveControl"))
@@ -888,7 +889,7 @@ htmTreatmentSummary_Data <- function(htm) {
     return(0)
   }
   if(!(colObjectCount %in% names(data))) {
-    print(paste("ERROR: object count",measurement,"does not exist in data"))
+    print(paste("ERROR: object count",colObjectCount,"does not exist in data"))
     return(0)
   }
   
@@ -1211,7 +1212,7 @@ htmTreatmentSummary_Data <- function(htm) {
   #with hits marked as sign
   
   results_ordered <- results[order(results$t_test__p_value),]
-  return(results_ordered)
+  return( results_ordered ) 
   
 }
 
