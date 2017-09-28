@@ -1,4 +1,4 @@
-# path = "\\\\almf\\almf\\software\\scripts\\R\\HTM_Explorer";setwd(path);source("run.R");
+# path = "/Users/tischi/Documents/HTM_Explorer/";setwd(path);source("run.R");
 
 
 if (!require("gWidgets")) {
@@ -43,13 +43,16 @@ if (!require("raster")) {
 
 source("classes.R")
 
-print("Checking htm object...")
-if(exists("htm")) {
-  print("  Found htm object; left it as it was; only restarting the GUI.")
-} else {
-  print("  No htm object found; initialising...")
-  htm <<- htmMake()
-}
+# Forcefully make a new htm object
+htm <<- htmMake()
+
+#print("Checking htm object...")
+#if(exists("htm")) {
+#  print("  Found htm object; left it as it was; only restarting the GUI.")
+#} else {
+#  print("  No htm object found; initialising...")
+#  htm <<- htmMake()
+#}
 
 htmPath = getwd()
 

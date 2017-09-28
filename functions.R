@@ -172,7 +172,7 @@ convert_wellA01_to_wellNum <- function(wellA01, nc=12) {
 
 htmLoadDataFromFile <- function(htm, tablename, path) {
   
-  print(paste("reading",path,"..."))
+  print( paste("reading",path,"...") )
   
   if(grepl("\t", readLines(path, n = 1))){
     # File is tab-separated (there is at least 1 tab in the first line)
@@ -184,7 +184,7 @@ htmLoadDataFromFile <- function(htm, tablename, path) {
   
   #.table = read.table(file=path, header=T, sep=",", stringsAsFactors=F, check.names=T)
   
-  if(is.null(htm)) {
+  if( is.null(htm) ) {
     htm <- htmMake()
   }
   
