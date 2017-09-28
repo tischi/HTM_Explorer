@@ -999,6 +999,7 @@ guiHandler_ScatterPlot_Data <- function(h,...){
     loc = locator(n=2)
     htmScatterPlot_Data(get("htm", envir = globalenv()), 
                    svalue(cx), svalue(cy), .xlim=sort(loc$x),.ylim=sort(loc$y), 
+                   experimentSubset = svalue(guiExpSubset),
                    treatmentSubset = htmGetVectorSettings("visualisation$treatmentSelectionForPlotting"),
                    aggregate = htmGetVectorSettings("visualisation$scatterPlotAggregate"),
                    colorize = htmGetVectorSettings("visualisation$scatterPlotColor"),

@@ -124,12 +124,11 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
             pathname = paste0("/",pathname)
           }
           
-          if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) {
+          if(imagename %in% htmGetListSetting(htm,"visualisation","viewImages")) 
+          {
             #cmd = paste(cmd, paste0(' -eval \"open(\'',pathname,'\')\"') )
             cmd = paste(cmd, paste0('open(\'',pathname,'\');\n') )
-            
           }
-          
           
         } # from file- and folder-name
         
@@ -154,7 +153,6 @@ htmShowDataFromRow <- function(htm,data,irs,appendCommand=""){
               pathname = gsub("/", "\\\\", pathname)
             }
             
-           
             images = c(images, pathname)
             
             if(("Location_Center_X" %in% names(data)) && ("Location_Center_Y" %in% names(data))) {
@@ -944,10 +942,10 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
     title(plotTitle, cex.main = 1.2)
     
     
-    linefit = FALSE
+    linefit = TRUE
     if(linefit) {
       fit <- lm(vy~vx)
-      print(fit)
+      print(fit$coefficients)
       yfit = predict(fit, list(vx=vx))
       lines(vx,yfit,col="red",lwd=2)
       #fit <- lm(vx~vy)
@@ -957,12 +955,24 @@ htmScatterPlot_Data <- function(htm, cx, cy, .xlim=NA, .ylim=NA, colorize="None 
       #pcaFit(vx,vy)
     }
     
-    
-    if( colorize != "None selected") {
-      print("  putting legend")
-      legend("topleft",legend = levels(factor(data[[colorize]])), bg="white", col=col_pal, pch=16)
-      # x=max(vx,na.rm=T),y=max(vy,na.rm=T),
+    squarefit = TRUE
+    if(squarefit) {
+        
     }
+    
+    #
+    # Print values to console
+    #
+    print(paste(as.character(vx), collapse=", "))
+    print(paste(as.character(vy), collapse=", "))
+    cat(paste(shQuote(treatments, type="cmd"), collapse=", "))
+    
+    correlation = cor( vx[which(qc==1)], vy[which(qc==1)], use="complete" )
+    cat( paste0("\nCorrelation: ",correlation,"\n") )
+    
+    if( colorize != "None selected" ) {
+      legend("topleft",legend = levels(factor(data[[colorize]])), bg="white", col=col_pal, pch=16)
+     }
     
     
     par(op)
