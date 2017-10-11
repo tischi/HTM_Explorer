@@ -1,3 +1,61 @@
+#
+# Select a subset of the data
+#
+
+# usage example:
+# ids <- htmSelectData(htm, treatments=unique(htm@data$Metadata_Well), measurement="HTM__z_score__projection", r=c(1,100), method="random", n=3)
+# htmShowDataFromRow(htm,htm@data,ids)
+
+# notes:
+# - this was implemented for Anna Steyer's CLEM project and is only available from
+# the command line
+
+htmSelectData <- function(htm, treatments, measurement, r=c(2,100), method="random", n=5, save_to_disc=FALSE) {
+    
+    print("*")
+    print("* Data selection")
+    print("*" )
+    print("")
+    
+    data <- htm@data
+    
+    cat("\nMeasurement:\n")
+    print(measurement)
+    cat("\nTreatments:\n")
+    print(treatments)
+    
+    htm <- htmApplyQCs(htm)
+    
+    print(paste("Total data points",length(data$HTM_qc)))
+    print(paste("Valid data points",sum(data$HTM_qc)))
+    
+    ids_selected = vector()
+    
+    for(treatment in treatments) {
+        
+        ids <- which( (data[[htm@settings@columns$treatment]] == treatment) &
+                          (data$HTM_qc==1) & 
+                          (data[[measurement]] > r[1]) &
+                          (data[[measurement]] < r[2]) )
+        
+        if(method == "random") {
+            ids <- sample(ids, min(n,length(ids)))
+        }
+        
+        ids_selected = c(ids_selected, ids)
+        print(paste(treatment,"selected",length(ids)))
+        
+    }
+    
+    if(save_to_disc) {
+        data_subset <- data[ids_selected,]
+        saveTable(data_subset)
+    }
+    
+    return(ids_selected)
+    
+}
+
 
 #
 # Math functions
@@ -890,6 +948,7 @@ htmTreatmentSummary_Data <- function(htm) {
   }
   if(!(colObjectCount %in% names(data))) {
     print(paste("ERROR: object count",colObjectCount,"does not exist in data"))
+      
     return(0)
   }
   
