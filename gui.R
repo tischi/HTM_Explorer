@@ -406,12 +406,12 @@ guiHandler_Heatmap_Data <- function(h, ...) {
     return(NULL)
   }
   
-  if(any(c(htmGetListSetting(htm,"columns","posnum"),
-           htmGetListSetting(htm,"columns","wellnum"),
-           htmGetListSetting(htm,"visualisation","number_positions_x"),
-           htmGetListSetting(htm,"visualisation","number_positions_y"),
-           htmGetListSetting(htm,"visualisation","number_subpositions_x")
-           ,htmGetListSetting(htm,"visualisation","number_subpositions_y"))
+  if(any(c(htmGetListSetting(htm,"columns","posnum",gui=T),
+           htmGetListSetting(htm,"columns","wellnum",gui=T),
+           htmGetListSetting(htm,"visualisation","number_positions_x",gui=T),
+           htmGetListSetting(htm,"visualisation","number_positions_y",gui=T),
+           htmGetListSetting(htm,"visualisation","number_subpositions_x",gui=T)
+           ,htmGetListSetting(htm,"visualisation","number_subpositions_y",gui=T))
          == "None selected")) {
     gmessage("Spatial layout setting missing [Main..Configuration..Spatial layout]")
     return(NULL)
@@ -1479,7 +1479,7 @@ guiHandler_TreatmentSummary <- function(h,...){
     
     measurements = htmGetVectorSettings("statistics$featureSelection") 
     
-    colObjectCount <- htmGetListSetting(htm,"statistics","objectCount")
+    colObjectCount <- htmGetListSetting(htm,"statistics","objectCount",gui=T)
     if ( colObjectCount == "None selected" )
     {
         gmessage("Please specify a column with the number of objects per image. If you don't have this information you could just add a column manually")
